@@ -1,0 +1,7 @@
+name = "career-limiting-maneuver"
+main = "dist/_worker.js/index.js"
+compatibility_date = "2025-07-30"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"

@@ -1,0 +1,96 @@
+---
+const accept = Astro.request.headers.get('accept') || '';
+const userAgent = (Astro.request.headers.get('user-agent') || '').toLowerCase();
+if (
+  accept.includes('text/plain') ||
+  accept.includes('text/*') ||
+  accept === '*/*' ||
+  userAgent.includes('curl')
+) {
+  const red = '\x1b[31m';
+  const reset = '\x1b[0m';
+  return new Response(`${red}
+ ██████╗ █████╗ ██████╗ ███████╗███████╗██████╗                        
+██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗                       
+██║     ███████║██████╔╝█████╗  █████╗  ██████╔╝                       
+██║     ██╔══██║██╔══██╗██╔══╝  ██╔══╝  ██╔══██╗                       
+╚██████╗██║  ██║██║  ██║███████╗███████╗██║  ██║                       
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝                       
+                                                                       
+██╗     ██╗███╗   ███╗██╗████████╗██╗███╗   ██╗ ██████╗                
+██║     ██║████╗ ████║██║╚══██╔══╝██║████╗  ██║██╔════╝                
+██║     ██║██╔████╔██║██║   ██║   ██║██╔██╗ ██║██║  ███╗               
+██║     ██║██║╚██╔╝██║██║   ██║   ██║██║╚██╗██║██║   ██║               
+███████╗██║██║ ╚═╝ ██║██║   ██║   ██║██║ ╚████║╚██████╔╝               
+╚══════╝╚═╝╚═╝     ╚═╝╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝                
+                                                                       
+███╗   ███╗ █████╗ ███╗   ██╗███████╗██╗   ██╗██╗   ██╗███████╗██████╗ 
+████╗ ████║██╔══██╗████╗  ██║██╔════╝██║   ██║██║   ██║██╔════╝██╔══██╗
+██╔████╔██║███████║██╔██╗ ██║█████╗  ██║   ██║██║   ██║█████╗  ██████╔╝
+██║╚██╔╝██║██╔══██║██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+██║ ╚═╝ ██║██║  ██║██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
+${reset}
+────────────────────────────────────────────────────────────────────────
+
+You've just pulled a ${red}Career Limiting Maneuver™!${reset}
+Don't worry — we won't tell your ${red}manager.${reset}
+${red}Tip:${reset} Visit the site in your browser for the full experience.
+`, {
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  });
+}
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Career Limiting Maneuver</title>
+    <meta name="description" content="A Fun Site For Career Limiting Maneuvers!" />
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        min-height: 100vh;
+        width: 100vw;
+        background: #ffffff;
+        font-family: system-ui, sans-serif;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 700px;
+        padding: 2rem 1rem 1rem 1rem;
+      }
+      img.hero {
+        max-width: 100%;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+      }
+      @media (max-width: 600px) {
+        h1 { font-size: 1.3rem; }
+        main { padding: 1rem 0.5rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="site-heading">Who else just committed a Career Limiting Maneuver?</h1>
+      <img src="/careerlimitingmaneuver.jpg" alt="A warning sign and the text 'you just committed a career limiting maneuver'" class="hero" loading="eager" />
+    </main>
+  </body>
+</html>
