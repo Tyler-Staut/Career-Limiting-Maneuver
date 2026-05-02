@@ -8,14 +8,23 @@ upload_source_maps = true
 directory = "./dist"
 binding = "ASSETS"
 
+<<<<<<< ours
 [ai]
 binding = "AI"
 
+=======
+>>>>>>> theirs
 [durable_objects]
 bindings = [
   { name = "Globe", class_name = "Globe" }
 ]
 
+<<<<<<< ours
 [[kv_namespaces]]
 binding = "REPORTS_KV"
 id = "d6b3c2736534491ab9a3dc1f32a82eec"
+=======
+[[migrations]]
+tag = "v1"
+new_classes = ["Globe"]
+>>>>>>> theirs
