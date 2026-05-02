@@ -1,3 +1,5 @@
+import { routePartykitRequest } from "partyserver";
+
 export { Globe } from "./server/index";
 
 type MessageListener = (event: { data: unknown }) => void;
@@ -76,6 +78,8 @@ type WorkerModule = {
   fetch?: (request: Request, env: unknown, ctx: ExecutionContext) => Response | Promise<Response>;
 };
 
+type PartyServerEnv = Parameters<typeof routePartykitRequest>[1];
+
 let astroWorkerModulePromise: Promise<WorkerModule> | undefined;
 
 function getAstroWorkerModule() {
@@ -87,6 +91,11 @@ function getAstroWorkerModule() {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
+    const partyResponse = await routePartykitRequest(request, env as PartyServerEnv);
+    if (partyResponse) {
+      return partyResponse;
+    }
+
     const astroWorkerModule = await getAstroWorkerModule();
     const handler = astroWorkerModule.default?.fetch ?? astroWorkerModule.fetch;
 
