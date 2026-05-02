@@ -13,11 +13,3 @@ binding = "AI"
 [[kv_namespaces]]
 binding = "REPORTS_KV"
 id = "reports_kv_id_placeholder"
-
-[[durable_objects.bindings]]
-name = "Globe"
-class_name = "Globe"
-
-[[migrations]]
-tag = "v1"
-new_classes = ["Globe"]
