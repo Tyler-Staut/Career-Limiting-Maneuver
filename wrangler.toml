@@ -3,6 +3,9 @@ main = "src/worker-entry.ts"
 compatibility_date = "2025-07-30"
 compatibility_flags = ["nodejs_compat"]
 upload_source_maps = true
+routes = [
+  { pattern = "careerlimitingmaneuver.com", zone_name = "careerlimitingmaneuver.com", custom_domain = true }
+]
 
 [assets]
 directory = "./dist"
@@ -22,4 +25,4 @@ id = "d6b3c2736534491ab9a3dc1f32a82eec"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["Globe"]
+new_sqlite_classes = ["Globe"]
