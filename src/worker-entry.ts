@@ -1,5 +1,9 @@
-export { Globe } from './server/Globe.js';
+import astroWorker from "../dist/_worker.js/index.js";
 
-import { onRequest } from './_worker.js';
+export { Globe } from "./server/index";
 
-export const fetch = onRequest;
+export default {
+  fetch(request: Request, env: unknown, ctx: ExecutionContext) {
+    return astroWorker.fetch(request, env as any, ctx);
+  },
+};
