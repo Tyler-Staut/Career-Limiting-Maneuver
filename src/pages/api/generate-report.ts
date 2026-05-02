@@ -1,15 +1,14 @@
 import type { APIRoute } from "astro";
 
-function generateFallbackReport(): string {
-  const reports = [
-    "Incident Report: Employee was observed deploying to production on a Friday at 4:58pm. The deployment contained 47 untested commits and a comment reading 'this should be fine.' Subsequent investigation revealed it was, in fact, not fine. HR has been notified. IT is still crying.",
-    "Incident Report: Subject accidentally replied-all to the company-wide email chain with their lunch order instead of the requested budget spreadsheet. The subject line read 'URGENT: PIZZA IS LIFE.' Management has requested a meeting. The meeting could have been an email.",
-    "Incident Report: Developer named production database table 'stuff_i_dont_care_about' and left it there for 6 months. When asked about it, responded 'works on my machine.' Currently being investigated for crimes against engineering. Recommended sentence: mandatory code review training.",
-  ];
-  return reports[Math.floor(Math.random() * reports.length)];
-}
+type IncidentReport = {
+  id: string;
+  reason: string;
+  report: string;
+  timestamp: number;
+  date: string;
+};
 
-function generateWalletData() {
+function generateReason(): string {
   const reasons = [
     "Deployed to production on Friday at 4:59pm",
     "Replied-all to company with lunch order drama",
@@ -22,15 +21,23 @@ function generateWalletData() {
     "Wrote 'TODO: fix this later' and never did",
     "Committed node_modules to the repo",
   ];
-  return {
-    reason: reasons[Math.floor(Math.random() * reasons.length)],
-    date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-    id: generateId(),
-  };
+  return reasons[Math.floor(Math.random() * reasons.length)];
+}
+
+function generateFallbackReport(reason: string): string {
+  return `Incident Report: ${reason}. The maneuver was detected, documented, and quietly forwarded to everyone who asked why the roadmap just changed. Recommended action: take a short walk, then stop touching production for the rest of the day.`;
 }
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function normalizeReport(report: string, reason: string): string {
+  return (report || generateFallbackReport(reason))
+    .replace(/\*\*/g, "")
+    .replace(/^#+\s*/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function generateReportViaGateway(prompt: string): Promise<string> {
@@ -59,96 +66,105 @@ async function generateReportViaGateway(prompt: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || generateFallbackReport();
+  return data.choices?.[0]?.message?.content || "";
+}
+
+function getRuntimeEnv(locals: unknown) {
+  return (locals as any).runtime?.env ?? locals;
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const body = await request.json();
   const { turnstileToken } = body;
+  const url = new URL(request.url);
+  const isLocalRequest = url.hostname === "localhost" || url.hostname === "127.0.0.1";
 
-  if (!turnstileToken) {
+  const turnstileSecret = import.meta.env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA";
+  const allowTurnstileFallback = import.meta.env.DEV || isLocalRequest || turnstileSecret === "1x0000000000000000000000000000000AA";
+
+  if (!turnstileToken && !allowTurnstileFallback) {
     return new Response(JSON.stringify({ error: "Turnstile token required" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const turnstileSecret = import.meta.env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA";
-
-  const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      secret: turnstileSecret,
-      response: turnstileToken,
-    }).toString(),
-  });
-
-  const verifyData = await verifyRes.json();
-
-  if (!verifyData.success) {
-    return new Response(JSON.stringify({ error: "Turnstile verification failed" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
+  if (turnstileToken) {
+    const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: turnstileSecret,
+        response: turnstileToken,
+      }).toString(),
     });
+
+    const verifyData = await verifyRes.json();
+
+    if (!verifyData.success && !allowTurnstileFallback) {
+      return new Response(JSON.stringify({ error: "Turnstile verification failed" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 
-  const prompts = [
-    "Write a funny, sarcastic incident report about someone committing a 'Career Limiting Maneuver' at work. Make it exactly 2-3 sentences. Include a fake but funny reason like 'accidentally replied-all to the entire company with lunch order drama' or 'pushed to production on Friday at 4:59pm'. Keep it light and absurd.",
-    "Generate a humorous corporate incident report for a 'Career Limiting Maneuver'. 2-3 sentences max. The reason should be something hilariously irresponsible like 'named a variable after their ex' or 'used git push --force on the main branch during a company demo'. Make it sound official but ridiculous.",
-    "Write a funny HR incident report about an employee's Career Limiting Maneuver. Keep it to 2-3 sentences. The offense should be absurd like 'scheduled a mandatory meeting at 4:45pm on Friday' or 'put works on my machine in their email signature'. Sound professional but completely unhinged.",
-  ];
-
-  const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+  const reason = generateReason();
+  const prompt = `Write a plain-text, funny corporate incident report for this Career Limiting Maneuver: "${reason}". Use 2-3 concise sentences. Do not use Markdown, headings, labels, employee names, dates, bullets, or fields.`;
 
   try {
     let report: string;
+    const env = getRuntimeEnv(locals);
 
     try {
-      report = await generateReportViaGateway(prompt);
+      report = normalizeReport(await generateReportViaGateway(prompt), reason);
     } catch {
-      const ai = (locals as any).ai;
+      const ai = (env as any).AI ?? (env as any).ai;
       if (ai) {
         const response = await ai.run("@cf/meta/llama-3.2-1b-instruct", {
           messages: [{ role: "user", content: prompt }],
           max_tokens: 150,
         });
-        report = response.response || generateFallbackReport();
+        report = normalizeReport(response.response, reason);
       } else {
-        report = generateFallbackReport();
+        report = generateFallbackReport(reason);
       }
     }
 
-    const wallet = generateWalletData();
-
-    const reportData = {
+    const reportData: IncidentReport = {
+      id: generateId(),
+      reason,
       report,
-      wallet,
       timestamp: Date.now(),
+      date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
     };
 
-    // Store to KV
     try {
-      const kv = (locals as any).REPORTS_KV;
+      const kv = (env as any).REPORTS_KV;
       if (kv) {
-        const id = new Date().getTime().toString();
-        await kv.put(`report:${id}`, JSON.stringify(reportData), {
-          expirationTtl: 60 * 60 * 24 * 30, // 30 days
+        await kv.put(`report:${reportData.timestamp}:${reportData.id}`, JSON.stringify(reportData), {
+          expirationTtl: 60 * 60 * 24 * 30,
         });
       }
     } catch {
-      // Silently fail - KV storage is optional
+      // KV storage is optional in local development.
     }
 
-    return new Response(JSON.stringify({ report, wallet }), {
+    return new Response(JSON.stringify(reportData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch {
-    return new Response(JSON.stringify({
-      report: generateFallbackReport(),
-      wallet: generateWalletData(),
-    }), {
+    const reason = generateReason();
+    const reportData: IncidentReport = {
+      id: generateId(),
+      reason,
+      report: generateFallbackReport(reason),
+      timestamp: Date.now(),
+      date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+    };
+
+    return new Response(JSON.stringify(reportData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

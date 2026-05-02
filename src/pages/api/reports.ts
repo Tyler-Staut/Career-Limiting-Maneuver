@@ -1,7 +1,11 @@
 import type { APIRoute } from "astro";
 
+function getRuntimeEnv(locals: unknown) {
+  return (locals as any).runtime?.env ?? locals;
+}
+
 export const GET: APIRoute = async ({ locals }) => {
-  const kv = (locals as any).REPORTS_KV;
+  const kv = (getRuntimeEnv(locals) as any).REPORTS_KV;
   
   if (!kv) {
     return new Response(JSON.stringify([]), {
@@ -36,7 +40,7 @@ export const GET: APIRoute = async ({ locals }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const kv = (locals as any).REPORTS_KV;
+  const kv = (getRuntimeEnv(locals) as any).REPORTS_KV;
   
   if (!kv) {
     return new Response(JSON.stringify({ success: false }), {

@@ -7,6 +7,9 @@ routes = [
   { pattern = "careerlimitingmaneuver.com", zone_name = "careerlimitingmaneuver.com", custom_domain = true }
 ]
 
+[observability]
+enabled = true
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"

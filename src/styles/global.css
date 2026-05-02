@@ -325,18 +325,40 @@ header.site-header {
   transform: none;
 }
 
-.incident-card .result {
+.incident-result {
   padding: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+.incident-result .case-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
   font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.incident-result h3 {
+  margin: 12px 0 8px;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.incident-result p {
+  margin: 0;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
 }
 
-.incident-card .result .error {
+.incident-result .error {
   color: var(--accent);
 }
 
@@ -364,65 +386,38 @@ header.site-header {
   border-color: color-mix(in oklab, var(--accent) 25%, var(--border));
 }
 
-.wallet-card {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  border-radius: var(--radius);
+.empty-reports {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
   padding: 20px;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  position: relative;
-  overflow: hidden;
-  min-height: 168px;
 }
 
-.wallet-card::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(119, 204, 255, 0.1) 0%, transparent 70%);
-  pointer-events: none;
+.recent-report-item {
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
-.wallet-card .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.wallet-card .brand-text {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  opacity: 0.7;
-}
-
-.wallet-card .logo {
-  font-size: 24px;
-}
-
-.wallet-card .reason {
-  font-size: 18px;
+.recent-report-title {
+  color: var(--text);
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 8px;
-  line-height: 1.3;
+  margin-bottom: 6px;
 }
 
-.wallet-card .details {
+.recent-report-body {
+  color: var(--muted);
   font-size: 12px;
-  opacity: 0.6;
-  font-family: var(--font-mono);
+  line-height: 1.4;
+  margin-bottom: 8px;
 }
 
-.wallet-card .id-number {
-  margin-top: 12px;
+.recent-report-meta {
+  color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 14px;
-  letter-spacing: 2px;
+  font-size: 11px;
 }
 
 .terminal-card {

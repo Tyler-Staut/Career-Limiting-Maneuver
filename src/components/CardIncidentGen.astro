@@ -1,16 +1,21 @@
 ---
 const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+const turnstileOptional = import.meta.env.DEV || turnstileSiteKey === "1x00000000000000000000AA";
 ---
 
 <div class="card incident-card" id="incident-card">
   <div class="card-header">
-    <span class="icon">📋</span>
     <h2 class="card-title">CLM Incident Report Generator</h2>
   </div>
   <p style="margin: 0 0 12px; color: var(--muted); font-size: 14px;">Generate your official Career Limiting Maneuver incident report. AI-powered, manager-approved (not really).</p>
 
   <div class="prompt-area">
-    <div id="turnstile-container" class="turnstile-wrapper" data-sitekey={turnstileSiteKey}></div>
+    <div
+      id="turnstile-container"
+      class="turnstile-wrapper"
+      data-sitekey={turnstileSiteKey}
+      data-optional={String(turnstileOptional)}
+    ></div>
     <button id="generate-btn" class="btn" disabled>
       <span id="btn-text">Generate Incident Report</span>
       <span id="btn-spinner" class="spinner" style="display: none;"></span>
@@ -18,23 +23,14 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
   </div>
 
   <div id="result-area" style="display: none;">
-    <div id="result-content" class="result"></div>
-
-    <div id="wallet-preview" class="wallet-card" style="display: none;">
-      <div class="header">
-        <span class="brand-text">Career Limiting Maneuver</span>
-        <span class="logo">⚠️</span>
+    <article class="incident-result">
+      <div class="case-meta">
+        <span id="case-id"></span>
+        <span id="case-date"></span>
       </div>
-      <div id="wallet-reason" class="reason"></div>
-      <div id="wallet-date" class="details"></div>
-      <div id="wallet-id" class="id-number"></div>
-    </div>
-
-    <div class="actions">
-      <button id="copy-link-btn" class="action-btn">Copy Share Link</button>
-      <button id="download-card-btn" class="action-btn">Save Card</button>
-      <button id="regenerate-btn" class="action-btn">New Report</button>
-    </div>
+      <h3 id="case-reason"></h3>
+      <p id="result-content"></p>
+    </article>
   </div>
 </div>
 
@@ -42,15 +38,24 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
   let turnstileReady = false;
   let turnstileToken = "";
   let turnstileWidgetId: string | undefined;
+  let turnstileOptional = false;
 
   function initTurnstile() {
     if (typeof window === "undefined") return;
+    const container = document.getElementById("turnstile-container");
+    turnstileOptional = container?.dataset.optional === "true";
+
+    if (turnstileOptional) {
+      turnstileReady = true;
+      document.getElementById("generate-btn")?.removeAttribute("disabled");
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      const container = document.getElementById("turnstile-container");
       if (container && (window as any).turnstile) {
         turnstileWidgetId = (window as any).turnstile.render(container, {
           sitekey: container.dataset.sitekey,
@@ -71,12 +76,35 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
         document.getElementById("generate-btn")?.removeAttribute("disabled");
       }
     };
+    script.onerror = () => {
+      if (turnstileOptional) {
+        turnstileReady = true;
+        document.getElementById("generate-btn")?.removeAttribute("disabled");
+      }
+    };
     document.head.appendChild(script);
   }
 
   initTurnstile();
 
-  let currentReport: any = null;
+  setTimeout(() => {
+    const container = document.getElementById("turnstile-container");
+    if (!turnstileReady && container?.dataset.optional === "true") {
+      turnstileOptional = true;
+      turnstileReady = true;
+      document.getElementById("generate-btn")?.removeAttribute("disabled");
+    }
+  }, 1500);
+
+  function saveLocalReport(report: any) {
+    try {
+      const rawReports = localStorage.getItem("clm-recent-reports");
+      const reports = rawReports ? JSON.parse(rawReports) : [];
+      const nextReports = [report, ...reports.filter((item: any) => item.id !== report.id)].slice(0, 20);
+      localStorage.setItem("clm-recent-reports", JSON.stringify(nextReports));
+      window.dispatchEvent(new CustomEvent("clm:reports-updated"));
+    } catch {}
+  }
 
   function resetGenerateButton() {
     const btn = document.getElementById("generate-btn");
@@ -89,7 +117,7 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
   }
 
   function requestReport() {
-    if (!turnstileReady || !turnstileWidgetId || !(window as any).turnstile) return;
+    if (!turnstileReady) return;
 
     const btn = document.getElementById("generate-btn");
     const btnText = document.getElementById("btn-text");
@@ -100,6 +128,16 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
     if (btnText) btnText.textContent = "Verifying...";
     if (btnSpinner) btnSpinner.style.display = "inline-block";
 
+    if (turnstileOptional) {
+      generateReport();
+      return;
+    }
+
+    if (!turnstileWidgetId || !(window as any).turnstile) {
+      resetGenerateButton();
+      return;
+    }
+
     (window as any).turnstile.execute(turnstileWidgetId);
   }
 
@@ -108,7 +146,7 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
     const btnText = document.getElementById("btn-text");
     const btnSpinner = document.getElementById("btn-spinner");
 
-    if (!turnstileToken) return;
+    if (!turnstileToken && !turnstileOptional) return;
 
     btn?.setAttribute("disabled", "");
     if (btnText) btnText.textContent = "Generating...";
@@ -118,24 +156,19 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
       const res = await fetch("/api/generate-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnstileToken }),
+        body: JSON.stringify({ turnstileToken: turnstileToken || null }),
       });
 
       if (!res.ok) throw new Error("Generation failed");
 
       const data = await res.json();
-      currentReport = data;
+      saveLocalReport(data);
 
       document.getElementById("result-area")?.removeAttribute("style");
+      document.getElementById("case-id")!.textContent = `CLM-${data.id}`;
+      document.getElementById("case-date")!.textContent = data.date;
+      document.getElementById("case-reason")!.textContent = data.reason;
       document.getElementById("result-content")!.textContent = data.report;
-
-      if (data.wallet) {
-        const wallet = document.getElementById("wallet-preview");
-        wallet?.removeAttribute("style");
-        document.getElementById("wallet-reason")!.textContent = data.wallet.reason;
-        document.getElementById("wallet-date")!.textContent = data.wallet.date;
-        document.getElementById("wallet-id")!.textContent = `CLM-${data.wallet.id}`;
-      }
     } catch {
       document.getElementById("result-area")?.removeAttribute("style");
       document.getElementById("result-content")!.innerHTML =
@@ -148,120 +181,5 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
     }
   }
 
-  function getShareUrl() {
-    if (!currentReport) return "";
-    const encoded = btoa(encodeURIComponent(JSON.stringify(currentReport)));
-    return `${window.location.origin}/api/report/#${encoded}`;
-  }
-
   document.getElementById("generate-btn")?.addEventListener("click", requestReport);
-
-  document.getElementById("regenerate-btn")?.addEventListener("click", () => {
-    currentReport = null;
-    document.getElementById("result-area")?.setAttribute("style", "display: none;");
-    document.getElementById("wallet-preview")?.setAttribute("style", "display: none;");
-  });
-
-  document.getElementById("copy-link-btn")?.addEventListener("click", () => {
-    const url = getShareUrl();
-    if (url) {
-      navigator.clipboard.writeText(url);
-      const btn = document.getElementById("copy-link-btn");
-      if (btn) {
-        btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Copy Share Link"; }, 2000);
-      }
-    }
-  });
-
-  document.getElementById("download-card-btn")?.addEventListener("click", async () => {
-    const wallet = document.getElementById("wallet-preview");
-    if (!wallet || !currentReport) return;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-    const w = 600;
-    const h = 340;
-    canvas.width = w * 2;
-    canvas.height = h * 2;
-    ctx.scale(2, 2);
-
-    const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, "#1a1a2e");
-    grad.addColorStop(0.5, "#16213e");
-    grad.addColorStop(1, "#0f3460");
-    ctx.fillStyle = grad;
-
-    const r = 24;
-    ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.lineTo(w - r, 0);
-    ctx.quadraticCurveTo(w, 0, w, r);
-    ctx.lineTo(w, h - r);
-    ctx.quadraticCurveTo(w, h, w - r, h);
-    ctx.lineTo(r, h);
-    ctx.quadraticCurveTo(0, h, 0, h - r);
-    ctx.lineTo(0, r);
-    ctx.quadraticCurveTo(0, 0, r, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "rgba(255, 68, 68, 0.08)";
-    ctx.beginPath();
-    ctx.arc(w - 80, -40, 200, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.font = "11px monospace";
-    ctx.fillText("CAREER LIMITING MANEUVER", 24, 32);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 48px sans-serif";
-    ctx.fillText("\u26A0\uFE0F", w - 64, 56);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 20px sans-serif";
-    const reasonLines = wrapText(ctx, currentReport.wallet.reason, w - 48, 16);
-    let y = 90;
-    for (const line of reasonLines) {
-      ctx.fillText(line, 24, y);
-      y += 26;
-    }
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.font = "13px monospace";
-    ctx.fillText(currentReport.wallet.date, 24, h - 50);
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-    ctx.font = "16px monospace";
-    ctx.fillText(`CLM-${currentReport.wallet.id}`, 24, h - 28);
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `clm-${currentReport.wallet.id}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-  });
-
-  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-    const words = text.split(" ");
-    const lines: string[] = [];
-    let currentLine = "";
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-    if (currentLine) lines.push(currentLine);
-    return lines.slice(0, 3);
-  }
 </script>
