@@ -1,0 +1,45 @@
+---
+---
+
+<div class="card recent-reports-card">
+  <div class="card-header">
+    <span class="icon">📊</span>
+    <h2 class="card-title">Recent CLM Reports</h2>
+  </div>
+  <p style="margin: 0 0 12px; color: var(--muted; font-size: 14px;">Latest career limiting maneuvers from around the office.</p>
+  
+  <div id="recent-reports-list" style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="color: var(--muted; font-size: 13px; text-align: center; padding: 20px;">
+      Loading recent reports...
+    </div>
+  </div>
+</div>
+
+<script>
+  async function loadRecentReports() {
+    const list = document.getElementById("recent-reports-list")!;
+    
+    try {
+      const res = await fetch("/api/reports");
+      if (!res.ok) throw new Error("Failed to load");
+      
+      const reports = await res.json();
+      
+      if (reports.length === 0) {
+        list.innerHTML = '<div style="color: var(--muted); font-size: 13px; text-align: center; padding: 20px;">No recent reports yet. Be the first!</div>';
+        return;
+      }
+      
+      list.innerHTML = reports.slice(0, 5).map((report: any) => `
+        <div style="padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.4;">
+          <div style="color: var(--text); margin-bottom: 4px;">${report.reason || report.report?.substring(0, 60) + "..." || "Unknown incident"}</div>
+          <div style="color: var(--muted); font-size: 11px;">${new Date(report.timestamp).toLocaleDateString()}</div>
+        </div>
+      `).join("");
+    } catch {
+      list.innerHTML = '<div style="color: var(--accent); font-size: 13px; text-align: center; padding: 20px;">Failed to load reports.</div>';
+    }
+  }
+  
+  loadRecentReports();
+</script>

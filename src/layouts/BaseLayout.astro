@@ -1,0 +1,63 @@
+---
+import "../styles/global.css";
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+const { title = "Career Limiting Maneuver", description = "You just committed a Career Limiting Maneuver. Your manager has been notified. (Just kidding... or are we?)" } = Astro.props as Props;
+---
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="/clm.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="/clm.png" />
+    <link rel="icon" href="/favicon.png" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header" data-open="false">
+        <a class="brand" href="https://tylerstaut.com" aria-label="Back to Tyler Staut's site">
+          <strong>Tyler Staut</strong>
+        </a>
+        <div class="header-actions">
+          <button class="theme-toggle" aria-label="Toggle theme">◐</button>
+        </div>
+      </header>
+
+      <main>
+        <slot />
+      </main>
+
+      <footer>
+        <div>Built with ❤️ and questionable decisions using Astro + Cloudflare Workers. <a href="https://github.com/Tyler-Staut/Career-Limiting-Maneuver" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+      </footer>
+    </div>
+
+    <script is:inline>
+      (function() {
+        const saved = localStorage.getItem('theme');
+        const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    <script is:inline>
+      const themeBtn = document.querySelector('.theme-toggle');
+      themeBtn?.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+    </script>
+  </body>
+</html>
