@@ -259,8 +259,9 @@ header.site-header {
 }
 
 .bento-card.incident-card {
-  height: 100%;
-  max-height: 400px;
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .bento-card.terminal-card {
@@ -269,8 +270,10 @@ header.site-header {
 }
 
 .bento-card.incident-card {
-  height: 100%;
+  height: auto;
   min-height: 0;
+  max-height: none;
+  overflow: visible;
 }
 
 .bento-card.recent-card {
@@ -286,6 +289,12 @@ header.site-header {
 
 .incident-card .prompt-area {
   margin-top: 12px;
+}
+
+#result-area {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .incident-card .btn {
@@ -317,7 +326,6 @@ header.site-header {
 }
 
 .incident-card .result {
-  margin-top: 16px;
   padding: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -335,7 +343,7 @@ header.site-header {
 .incident-card .actions {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
 .incident-card .action-btn {
@@ -357,7 +365,6 @@ header.site-header {
 }
 
 .wallet-card {
-  margin-top: 16px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   border-radius: var(--radius);
   padding: 20px;
@@ -366,6 +373,7 @@ header.site-header {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   position: relative;
   overflow: hidden;
+  min-height: 168px;
 }
 
 .wallet-card::before {
@@ -467,9 +475,10 @@ header.site-header {
 }
 
 .turnstile-wrapper {
-  margin: 12px 0;
-  display: flex;
-  justify-content: center;
+  width: 0;
+  height: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
 .spinner {

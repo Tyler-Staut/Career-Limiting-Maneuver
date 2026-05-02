@@ -41,6 +41,7 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
 <script>
   let turnstileReady = false;
   let turnstileToken = "";
+  let turnstileWidgetId: string | undefined;
 
   function initTurnstile() {
     if (typeof window === "undefined") return;
@@ -51,18 +52,23 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
     script.onload = () => {
       const container = document.getElementById("turnstile-container");
       if (container && (window as any).turnstile) {
-        (window as any).turnstile.render(container, {
+        turnstileWidgetId = (window as any).turnstile.render(container, {
           sitekey: container.dataset.sitekey,
+          size: "invisible",
           callback: (token: string) => {
             turnstileToken = token;
-            turnstileReady = true;
-            document.getElementById("generate-btn")?.removeAttribute("disabled");
+            generateReport();
           },
           "expired-callback": () => {
-            turnstileReady = false;
-            document.getElementById("generate-btn")?.setAttribute("disabled", "");
+            turnstileToken = "";
+          },
+          "error-callback": () => {
+            turnstileToken = "";
+            resetGenerateButton();
           },
         });
+        turnstileReady = true;
+        document.getElementById("generate-btn")?.removeAttribute("disabled");
       }
     };
     document.head.appendChild(script);
@@ -72,12 +78,37 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
 
   let currentReport: any = null;
 
+  function resetGenerateButton() {
+    const btn = document.getElementById("generate-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    btn?.removeAttribute("disabled");
+    if (btnText) btnText.textContent = "Generate Incident Report";
+    if (btnSpinner) btnSpinner.style.display = "none";
+  }
+
+  function requestReport() {
+    if (!turnstileReady || !turnstileWidgetId || !(window as any).turnstile) return;
+
+    const btn = document.getElementById("generate-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    turnstileToken = "";
+    btn?.setAttribute("disabled", "");
+    if (btnText) btnText.textContent = "Verifying...";
+    if (btnSpinner) btnSpinner.style.display = "inline-block";
+
+    (window as any).turnstile.execute(turnstileWidgetId);
+  }
+
   async function generateReport() {
     const btn = document.getElementById("generate-btn");
     const btnText = document.getElementById("btn-text");
     const btnSpinner = document.getElementById("btn-spinner");
 
-    if (!turnstileReady || !turnstileToken) return;
+    if (!turnstileToken) return;
 
     btn?.setAttribute("disabled", "");
     if (btnText) btnText.textContent = "Generating...";
@@ -110,9 +141,10 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
       document.getElementById("result-content")!.innerHTML =
         '<span class="error">Failed to generate report. Try again.</span>';
     } finally {
-      btn?.removeAttribute("disabled");
-      if (btnText) btnText.textContent = "Generate Incident Report";
-      if (btnSpinner) btnSpinner.style.display = "none";
+      resetGenerateButton();
+      if ((window as any).turnstile && turnstileWidgetId) {
+        (window as any).turnstile.reset(turnstileWidgetId);
+      }
     }
   }
 
@@ -122,7 +154,7 @@ const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000
     return `${window.location.origin}/api/report/#${encoded}`;
   }
 
-  document.getElementById("generate-btn")?.addEventListener("click", generateReport);
+  document.getElementById("generate-btn")?.addEventListener("click", requestReport);
 
   document.getElementById("regenerate-btn")?.addEventListener("click", () => {
     currentReport = null;
