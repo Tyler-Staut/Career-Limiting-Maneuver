@@ -16,10 +16,6 @@ bindings = [
   { name = "Globe", class_name = "Globe" }
 ]
 
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["Globe"]
-
 [[kv_namespaces]]
 binding = "REPORTS_KV"
 id = "d6b3c2736534491ab9a3dc1f32a82eec"
