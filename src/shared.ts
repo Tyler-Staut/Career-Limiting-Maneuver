@@ -1,6 +1,10 @@
-// Messages that we'll send to the client
+export type Location = [latitude: number, longitude: number];
 
-// Representing a person's position
+export type GlobeMessage = {
+  globe: Record<string, Location>;
+  id: string;
+};
+
 export type Position = {
   lat: number;
   lng: number;

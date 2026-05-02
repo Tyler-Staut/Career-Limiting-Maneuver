@@ -1,44 +1,43 @@
 import React, { useEffect, useRef, useState } from "react";
 import createGlobe from "cobe";
 import usePartySocket from "partysocket/react";
-import type { OutgoingMessage } from "../shared";
-import type { LegacyRef } from "react";
+import type { GlobeMessage, Location } from "../shared";
 
 function App() {
-  const canvasRef = useRef<HTMLCanvasElement>();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [connected, setConnected] = useState(false);
   const [counter, setCounter] = useState(0);
-  const positions = useRef<
-    Map<
-      string,
-      {
-        location: [number, number];
-        size: number;
-      }
-    >
-  >(new Map());
+  const positions = useRef<Map<string, Location>>(new Map());
+  const ownId = useRef<string | null>(null);
 
-  const socket = usePartySocket({
+  usePartySocket({
     room: "default",
     party: "globe",
     onMessage(evt) {
-      const message = JSON.parse(evt.data as string) as OutgoingMessage;
-      if (message.type === "add-marker") {
-        positions.current.set(message.position.id, {
-          location: [message.position.lat, message.position.lng],
-          size: message.position.id === socket.id ? 0.1 : 0.05,
-        });
-        setCounter((c) => c + 1);
-      } else {
-        positions.current.delete(message.id);
-        setCounter((c) => c - 1);
+      if (typeof evt.data !== "string") {
+        return;
       }
+
+      const message = JSON.parse(evt.data) as GlobeMessage;
+
+      ownId.current = message.id;
+      positions.current = new Map(
+        Object.entries(message.globe).map(([id, location]) => [id, location]),
+      );
+      setCounter(positions.current.size);
+      setConnected(true);
     },
   });
 
   useEffect(() => {
     let phi = 0;
+    const canvas = canvasRef.current;
 
-    const globe = createGlobe(canvasRef.current as HTMLCanvasElement, {
+    if (!canvas) {
+      return;
+    }
+
+    const globe = createGlobe(canvas, {
       devicePixelRatio: 2,
       width: 400 * 2,
       height: 400 * 2,
@@ -49,12 +48,15 @@ function App() {
       mapSamples: 16000,
       mapBrightness: 6,
       baseColor: [0.3, 0.3, 0.3],
-      markerColor: [0.8, 0.1, 0.1],
+      markerColor: [0.1, 0.8, 0.1],
       glowColor: [0.2, 0.2, 0.2],
       markers: [],
       opacity: 0.7,
       onRender: (state) => {
-        state.markers = [...positions.current.values()];
+        state.markers = [...positions.current].map(([id, location]) => ({
+          location,
+          size: id === ownId.current ? 0.1 : 0.05,
+        }));
         state.phi = phi;
         phi += 0.01;
       },
@@ -125,18 +127,18 @@ function App() {
       <h1 style={{ color: "inherit", margin: "0 0 8px 0", fontSize: "1.2rem" }}>
         Who Else is Pulling a Career Limiting Maneuver?
       </h1>
-      {counter !== 0 ? (
+      {connected ? (
         <p style={{ color: "#999", margin: "0 0 12px 0" }}>
           <b style={{ color: "inherit" }}>{counter}</b> {counter === 1 ? "person" : "people"} limiting their career outlooks.
         </p>
       ) : (
-        <p style={{ margin: "0 0 12px 0" }}>&nbsp;</p>
+        <p style={{ color: "#999", margin: "0 0 12px 0" }}>Connecting...</p>
       )}
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <canvas
-          ref={canvasRef as LegacyRef<HTMLCanvasElement>}
-          style={{ width: "100%", maxWidth: 400, aspectRatio: 1 }}
+          ref={canvasRef}
+          style={{ display: "block", width: "100%", maxWidth: 400, aspectRatio: 1 }}
         />
       </div>
     </div>
