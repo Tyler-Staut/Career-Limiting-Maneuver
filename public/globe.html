@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLM Globe</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #111318;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.2rem; margin: 0 0 8px 0; color: white; }
+    p { color: #999; margin: 0 0 12px 0; }
+    b { color: white; }
+    canvas { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Who Else is Pulling a Career Limiting Maneuver?</h1>
+  <p id="counter">&nbsp;</p>
+  <canvas id="globe" style="width: 400px; height: 400px; max-width: 100%;"></canvas>
+  <script src="/dist/globe-bundle.js"></script>
+</body>
+</html>

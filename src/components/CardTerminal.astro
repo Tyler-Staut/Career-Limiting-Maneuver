@@ -1,0 +1,135 @@
+---
+---
+
+<div class="card terminal-card">
+  <div class="card-header">
+    <span class="icon">💻</span>
+    <h2 class="card-title">CLM Terminal</h2>
+  </div>
+  <p style="margin: 0 0 12px; color: var(--muted); font-size: 14px;">Type a command and press Enter. Try <code>help</code> to get started.</p>
+
+  <div id="terminal-output" class="terminal-output"></div>
+
+  <form id="terminal-form" style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
+    <span style="color: #00ff41;">$</span>
+    <input
+      id="terminal-input"
+      type="text"
+      placeholder="Enter command..."
+      autocomplete="off"
+      spellcheck="false"
+      style="flex: 1; background: transparent; border: none; color: #00ff41; font-family: var(--font-mono); font-size: 14px; outline: none;"
+    />
+  </form>
+</div>
+
+<script>
+  const output = document.getElementById("terminal-output")!;
+  const form = document.getElementById("terminal-form")!;
+  const input = document.getElementById("terminal-input")!;
+
+  const responses: Record<string, string> = {
+    help: `Available commands:
+  help        Show this help message
+  status      Check your career status
+  whoami      Identify yourself
+  report      Generate a CLM report
+  ls          List your mistakes
+  rm -rf /    Nice try.
+  sudo make me a sandwich
+  fortune     Get a CLM fortune
+  clear       Clear the terminal`,
+
+    status: `████████████████████████░░░░  80%
+Career Status: TERMINALLY COMPROMISED
+Outlook: Bleak but entertaining
+Manager Awareness Level: HIGH
+HR Tickets Open: 3
+
+Your career is in critical condition. Please enjoy responsibly.`,
+
+    whoami: `clm-enthusiast (uid=666)
+groups: bad-decisions, career-suicide, fun-having
+shell: /bin/regret
+home: /dev/null
+
+You are a certified Career Limiting Maneuver practitioner.`,
+
+    report: `Incident Report #${Math.floor(Math.random() * 9999)}
+Date: ${new Date().toISOString().split("T")[0]}
+Severity: MAXIMUM
+Action: You pulled a CLM
+Status: Irreversible
+
+Note: This report has been filed with HR.
+(They're still laughing.)`,
+
+    "ls": `Drwxr-xr-x  bad-decisions/
+Drwxr-xr-x  career-sabotage/
+-rw-r--r--  regrets.txt (4.2MB)
+-rw-r--r--  excuses.md (empty)
+lrwxrwxrwx  promotion -> /dev/null
+-rwxr-xr-x  clm.sh (executable)
+
+Total: ${Math.floor(Math.random() * 99)} career-limiting maneuvers found.`,
+
+    "rm -rf /": `<span class="error">Nice try. We've seen this before.
+Your attempt has been logged as Incident #${Math.floor(Math.random() * 9999)}.
+HR has been notified. Again.</span>`,
+
+    "sudo make me a sandwich": `User clm-enthusiast is not in the sudoers file.
+This incident will be reported.
+(Just like everything else you do.)
+
+<span class="muted">...but here's a virtual sandwich anyway: 🥪</span>`,
+
+    fortune: getRandomFortune(),
+  };
+
+  function getRandomFortune(): string {
+    const fortunes = [
+      "A career limiting maneuver is in your immediate future. You're living it right now.",
+      "Your code will be reviewed by someone who doesn't understand it. This is fine.",
+      "You will accidentally reply-all to the company. The subject line will be questionable.",
+      "A deployment on Friday will teach you the true meaning of regret.",
+      "Your git push --force will be the one time you shouldn't have used it.",
+      "The person who reviews your PR will be the CEO.",
+      "You will name a variable something you'll regret in 3 years.",
+      "A meeting that could have been an email will consume your entire afternoon.",
+    ];
+    return fortunes[Math.floor(Math.random() * fortunes.length)];
+  }
+
+  function appendOutput(text: string, isUser = false) {
+    const line = document.createElement("div");
+    line.style.marginBottom = "4px";
+    if (isUser) {
+      line.innerHTML = `<span style="color: #00ff41;">$</span> ${text}`;
+    } else {
+      line.innerHTML = text;
+    }
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cmd = input.value.trim().toLowerCase();
+    if (!cmd) return;
+
+    appendOutput(input.value.trim(), true);
+    input.value = "";
+
+    if (cmd === "clear") {
+      output.innerHTML = "";
+      return;
+    }
+
+    const response = responses[cmd] || `<span class="error">Command not found: ${cmd}
+Type 'help' for available commands.</span>`;
+
+    appendOutput(response);
+  });
+
+  input.focus();
+</script>

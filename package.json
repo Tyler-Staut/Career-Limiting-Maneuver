@@ -1,7 +1,7 @@
 {
   "name": "",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -10,6 +10,15 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.0",
-    "astro": "^5.12.6"
+    "@astrojs/react": "^5.0.4",
+    "astro": "^5.12.6",
+    "cobe": "^2.0.1",
+    "partyserver": "^0.5.5",
+    "partysocket": "^1.1.18",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
   }
 }

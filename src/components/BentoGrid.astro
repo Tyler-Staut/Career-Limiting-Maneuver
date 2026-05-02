@@ -1,0 +1,53 @@
+---
+--- 
+
+<div class="bento-grid">
+  <slot />
+</div>
+ 
+<style>
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "hero globe"
+      "incident incident"
+      "recent recent";
+    gap: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: stretch;
+  }
+
+  .bento-grid > :global(.hero-card) {
+    grid-area: hero;
+  }
+
+  .bento-grid > :global(.globe-card) {
+    grid-area: globe;
+  }
+
+  .bento-grid > :global(.incident-card) {
+    grid-area: incident;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bento-grid > :global(.recent-card) {
+    grid-area: recent;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (max-width: 959px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "hero"
+        "globe"
+        "incident"
+        "recent";
+      max-width: 100%;
+    }
+  }
+</style>
