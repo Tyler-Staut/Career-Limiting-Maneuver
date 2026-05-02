@@ -2,6 +2,7 @@ name = "career-limiting-maneuver"
 main = "dist/_worker.js/index.js"
 compatibility_date = "2025-07-30"
 compatibility_flags = ["nodejs_compat"]
+upload_source_maps = true
 
 [assets]
 directory = "./dist"
@@ -10,6 +11,19 @@ binding = "ASSETS"
 [ai]
 binding = "AI"
 
+[durable_objects]
+bindings = [
+  { name = "Globe", class_name = "Globe" }
+]
+
+[observability]
+enabled = true
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Globe"]
+
+
 [[kv_namespaces]]
 binding = "REPORTS_KV"
-id = "reports_kv_id_placeholder"
+id = "d6b3c2736534491ab9a3dc1f32a82eec"
