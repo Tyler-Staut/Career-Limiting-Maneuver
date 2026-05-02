@@ -1,7 +1,26 @@
 name = "career-limiting-maneuver"
-main = "dist/_worker.js/index.js"
+main = "dist/worker.js"
 compatibility_date = "2025-07-30"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "node scripts/build-and-bundle.js"
 
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+
+[ai]
+binding = "AI"
+
+[[kv_namespaces]]
+binding = "REPORTS_KV"
+id = "reports_kv_id_placeholder"
+
+[[durable_objects.bindings]]
+name = "Globe"
+class_name = "Globe"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Globe"]
