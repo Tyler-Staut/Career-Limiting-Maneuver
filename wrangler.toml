@@ -1,5 +1,5 @@
 name = "career-limiting-maneuver"
-main = "dist/worker.js"
+main = "dist/_worker.js/index.js"
 compatibility_date = "2025-07-30"
 compatibility_flags = ["nodejs_compat"]
 
