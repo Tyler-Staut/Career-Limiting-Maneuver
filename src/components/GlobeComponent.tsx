@@ -5,8 +5,10 @@ import type { GlobeMessage, Location } from "../shared";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [connected, setConnected] = useState(false);
   const [counter, setCounter] = useState(0);
+  const [globeSize, setGlobeSize] = useState(0);
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
@@ -84,17 +86,44 @@ function App() {
   });
 
   useEffect(() => {
+    const wrap = canvasWrapRef.current;
+
+    if (!wrap) {
+      return;
+    }
+
+    const updateGlobeSize = () => {
+      const rect = wrap.getBoundingClientRect();
+      const nextSize = Math.max(0, Math.floor(Math.min(rect.width, rect.height)));
+      setGlobeSize((prevSize) => (prevSize === nextSize ? prevSize : nextSize));
+    };
+
+    updateGlobeSize();
+
+    const resizeObserver = new ResizeObserver(updateGlobeSize);
+    resizeObserver.observe(wrap);
+    window.addEventListener("resize", updateGlobeSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateGlobeSize);
+    };
+  }, []);
+
+  useEffect(() => {
     let phi = 0;
     const canvas = canvasRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const size = globeSize;
 
-    if (!canvas) {
+    if (!canvas || size <= 0) {
       return;
     }
 
     const globe = createGlobe(canvas, {
-      devicePixelRatio: 2,
-      width: 400 * 2,
-      height: 400 * 2,
+      devicePixelRatio: dpr,
+      width: size * dpr,
+      height: size * dpr,
       phi: 0,
       theta: 0,
       dark: 1,
@@ -119,7 +148,7 @@ function App() {
     return () => {
       globe.destroy();
     };
-  }, []);
+  }, [globeSize]);
 
   const [clmTriggered, setClmTriggered] = useState(false);
   useEffect(() => {
@@ -171,10 +200,11 @@ function App() {
         <p className="globe-panel__subtitle">Connecting...</p>
       )}
 
-      <div className="globe-panel__canvas-wrap">
+      <div ref={canvasWrapRef} className="globe-panel__canvas-wrap">
         <canvas
           ref={canvasRef}
           className="globe-panel__canvas"
+          style={{ width: globeSize, height: globeSize }}
         />
       </div>
     </div>
