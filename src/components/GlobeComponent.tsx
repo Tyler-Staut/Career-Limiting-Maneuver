@@ -5,7 +5,7 @@ import type { GlobeMessage, Location } from "../shared";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [connected, setConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "retrying" | "error">("connecting");
   const [counter, setCounter] = useState(0);
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
@@ -38,7 +38,7 @@ function App() {
   const normalizedHost = normalizeHost(partykitHost);
   const socketHost = normalizedHost || window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const handleSocketConnected = () => setConnected(true);
+  const handleSocketConnected = () => setConnectionState("connected");
 
   usePartySocket({
     host: socketHost,
@@ -56,10 +56,11 @@ function App() {
         reason: event.reason,
         wasClean: event.wasClean,
       });
-      setConnected(false);
+      setConnectionState("retrying");
     },
     onError(event) {
       console.error("[PartySocket] Connection error for globe/default", event);
+      setConnectionState("error");
     },
     onMessage(evt) {
       if (typeof evt.data !== "string") {
@@ -160,16 +161,27 @@ function App() {
         </div>
       )}
 
-      <h1 className="globe-panel__title">
-        Who Else is Pulling a Career Limiting Maneuver?
-      </h1>
-      {connected ? (
+      <div className="globe-panel__copy" data-state={connectionState}>
+        <h1 className="globe-panel__title">
+          Who Else Is Pulling a Career-Limiting Maneuver?
+        </h1>
         <p className="globe-panel__subtitle">
-          <b className="globe-panel__counter">{counter}</b> {counter === 1 ? "person" : "people"} limiting their career outlooks.
+          {connectionState === "connected" ? (
+            <>
+              <span className="globe-panel__counter" role="status" aria-live="polite">
+                {counter} {counter === 1 ? "operator" : "operators"} online
+              </span>{" "}
+              currently limiting their career outlook.
+            </>
+          ) : connectionState === "error" ? (
+            "Connection failed. Retrying before this maneuver goes on your permanent record."
+          ) : connectionState === "retrying" ? (
+            "Signal dropped. Reconnecting to the career-limiting command center..."
+          ) : (
+            "Connecting to the career-limiting command center..."
+          )}
         </p>
-      ) : (
-        <p className="globe-panel__subtitle">Connecting...</p>
-      )}
+      </div>
 
       <div className="globe-panel__canvas-wrap">
         <canvas
