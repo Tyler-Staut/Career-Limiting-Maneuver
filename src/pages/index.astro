@@ -1,11 +1,101 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BentoGrid from '../components/BentoGrid.astro';
+import CardHero from '../components/CardHero.astro';
+import CardGlobe from '../components/CardGlobe.astro';
+import CardIncidentGen from '../components/CardIncidentGen.astro';
+import CardRecentReports from '../components/CardRecentReports.astro';
+
 const accept = Astro.request.headers.get('accept') || '';
 const userAgent = (Astro.request.headers.get('user-agent') || '').toLowerCase();
+const url = new URL(Astro.request.url);
+const cmd = url.searchParams.get('cmd');
+
+const responses: Record<string, string> = {
+  help: `Available commands:
+  help        Show this help message
+  status      Check your career status
+  whoami      Identify yourself
+  report      Generate a CLM report
+  ls          List your mistakes
+  rm -rf /    Nice try.
+  sudo make me a sandwich
+  fortune     Get a CLM fortune
+  clear       Clear the terminal`,
+  
+  fortune: getRandomFortune(),
+  
+  status: `████████████████████████░░░░  80%
+Career Status: TERMINALLY COMPROMISED
+Outlook: Bleak but entertaining
+Manager Awareness Level: HIGH
+HR Tickets Open: 3
+
+Your career is in critical condition. Please enjoy responsibly.`,
+  
+  whoami: `clm-enthusiast (uid=666)
+groups: bad-decisions, career-suicide, fun-having
+shell: /bin/regret
+home: /dev/null
+
+You are a certified Career Limiting Maneuver practitioner.`,
+  
+  report: `Incident Report #${Math.floor(Math.random() * 9999)}
+Date: ${new Date().toISOString().split("T")[0]}
+Severity: MAXIMUM
+Action: You pulled a CLM
+Status: Irreversible
+
+Note: This report has been filed with HR.
+(They're still laughing.)`,
+  
+  "ls": `Drwxr-xr-x  bad-decisions/
+Drwxr-xr-x  career-sabotage/
+-rw-r--r--  regrets.txt (4.2MB)
+-rw-r--r--  excuses.md (empty)
+lrwxrwxrwx  promotion -> /dev/null
+-rwxr-xr-x  clm.sh (executable)
+
+Total: ${Math.floor(Math.random() * 99)} career-limiting maneuvers found.`,
+  
+  "rm -rf /": `Nice try. We've seen this before.
+Your attempt has been logged as Incident #${Math.floor(Math.random() * 9999)}.
+HR has been notified. Again.`,
+  
+  "sudo make me a sandwich": `User clm-enthusiast is not in the sudoers file.
+This incident will be reported.
+(Just like everything else you do.)
+
+...but here's a virtual sandwich anyway: 🥪`,
+};
+
+function getRandomFortune(): string {
+  const fortunes = [
+    "A career limiting maneuver is in your immediate future. You're living it right now.",
+    "Your code will be reviewed by someone who doesn't understand it. This is fine.",
+    "You will accidentally reply-all to the company. The subject line will be questionable.",
+    "A deployment on Friday will teach you the true meaning of regret.",
+    "Your git push --force will be the one time you shouldn't have used it.",
+    "The person who reviews your PR will be the CEO.",
+    "You will name a variable something you'll regret in 3 years.",
+    "A meeting that could have been an email will consume your entire afternoon.",
+  ];
+  return fortunes[Math.floor(Math.random() * fortunes.length)];
+}
+
+if (cmd) {
+  const response = responses[cmd.toLowerCase()] || `Command not found: ${cmd}\nType 'help' for available commands.`;
+  return new Response(response, {
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  });
+}
+
 if (
   accept.includes('text/plain') ||
   accept.includes('text/*') ||
   accept === '*/*' ||
-  userAgent.includes('curl')
+  userAgent.includes('curl') ||
+  userAgent.includes('wget')
 ) {
   const red = '\x1b[31m';
   const reset = '\x1b[0m';
@@ -16,83 +106,52 @@ if (
 ██║     ██╔══██║██╔══██╗██╔══╝  ██╔══╝  ██╔══██╗                       
 ╚██████╗██║  ██║██║  ██║███████╗███████╗██║  ██║                       
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝                       
-                                                                       
+                                                                          
 ██╗     ██╗███╗   ███╗██╗████████╗██╗███╗   ██╗ ██████╗                
 ██║     ██║████╗ ████║██║╚══██╔══╝██║████╗  ██║██╔════╝                
 ██║     ██║██╔████╔██║██║   ██║   ██║██╔██╗ ██║██║  ███╗               
 ██║     ██║██║╚██╔╝██║██║   ██║   ██║██║╚██╗██║██║   ██║               
 ███████╗██║██║ ╚═╝ ██║██║   ██║   ██║██║ ╚████║╚██████╔╝               
 ╚══════╝╚═╝╚═╝     ╚═╝╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝                
-                                                                       
+                                                                          
 ███╗   ███╗ █████╗ ███╗   ██╗███████╗██╗   ██╗██╗   ██╗███████╗██████╗ 
-████╗ ████║██╔══██╗████╗  ██║██╔════╝██║   ██║██║   ██║██╔════╝██╔══██╗
+████╗ ████║██╔══██║████╗  ██║██╔════╝██║   ██║██║   ██║██╔════╝██╔══██╗
 ██╔████╔██║███████║██╔██╗ ██║█████╗  ██║   ██║██║   ██║█████╗  ██████╔╝
 ██║╚██╔╝██║██╔══██║██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
 ██║ ╚═╝ ██║██║  ██║██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
 ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
 ${reset}
-────────────────────────────────────────────────────────────────────────
-
+───────────────────────────────────────────────────────────────────────
+  
 You've just pulled a ${red}Career Limiting Maneuver™!${reset}
 Don't worry — we won't tell your ${red}manager.${reset}
+
+${red}Commands:${reset}
+  status  - Check your career status
+  help    - Available commands
+  report  - Generate an incident report
+
 ${red}Tip:${reset} Visit the site in your browser for the full experience.
+${red}Tip:${reset} Use ?cmd=<command> with curl for terminal commands.
 `, {
     headers: { 'content-type': 'text/plain; charset=utf-8' },
   });
 }
-
-const images = ['/clm.png', '/clm2.png'];
-const randomImage = images[Math.floor(Math.random() * images.length)];
 ---
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Career Limiting Maneuver</title>
-    <meta name="description" content="A Fun Site For Career Limiting Maneuvers!" />
-    <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        background: #ffffff;
-      }
-      body {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: center;
-        min-height: 100vh;
-        width: 100vw;
-        background: #ffffff;
-        font-family: system-ui, sans-serif;
-      }
-      main {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-        max-width: 700px;
-        padding: 2rem 1rem 1rem 1rem;
-      }
-      img.hero {
-        max-width: 100%;
-        height: auto;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        margin-bottom: 2rem;
-      }
-      @media (max-width: 600px) {
-        h1 { font-size: 1.3rem; }
-        main { padding: 1rem 0.5rem; }
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <img src={randomImage} alt="A warning sign and the text 'you just committed a career limiting maneuver'" class="hero" loading="eager" />
-    </main>
-  </body>
-</html>
+
+<BaseLayout>
+  <BentoGrid>
+    <div class="bento-card hero-card">
+      <CardHero />
+    </div>
+    <div class="bento-card globe-card">
+      <CardGlobe />
+    </div>
+    <div class="bento-card incident-card">
+      <CardIncidentGen />
+    </div>
+    <div class="bento-card recent-card">
+      <CardRecentReports />
+    </div>
+  </BentoGrid>
+</BaseLayout>

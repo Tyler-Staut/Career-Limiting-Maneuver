@@ -1,0 +1,8 @@
+---
+const images = ['/clm.png', '/clm2.png'];
+const randomImage = images[Math.floor(Math.random() * images.length)];
+---
+
+<div class="card hero-card">
+  <img src={randomImage} alt="You just committed a Career Limiting Maneuver" loading="eager" />
+</div>

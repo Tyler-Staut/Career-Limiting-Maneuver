@@ -1,7 +1,31 @@
 name = "career-limiting-maneuver"
-main = "dist/_worker.js/index.js"
+main = "src/worker-entry.ts"
 compatibility_date = "2025-07-30"
+compatibility_flags = ["nodejs_compat"]
+upload_source_maps = true
+routes = [
+  { pattern = "careerlimitingmaneuver.com", zone_name = "careerlimitingmaneuver.com", custom_domain = true }
+]
+
+[observability]
+enabled = true
 
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+
+[ai]
+binding = "AI"
+
+[durable_objects]
+bindings = [
+  { name = "Globe", class_name = "Globe" }
+]
+
+[[kv_namespaces]]
+binding = "REPORTS_KV"
+id = "d6b3c2736534491ab9a3dc1f32a82eec"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Globe"]

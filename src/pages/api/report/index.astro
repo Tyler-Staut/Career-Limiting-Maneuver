@@ -1,0 +1,71 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const reportData = `
+if (typeof window !== "undefined") {
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    try {
+      const data = JSON.parse(decodeURIComponent(atob(hash)));
+      window.__clm_report__ = data;
+    } catch (e) {
+      console.error("Failed to parse CLM report data");
+    }
+  }
+}
+`;
+---
+
+<BaseLayout title="CLM Incident Report" description="A Career Limiting Maneuver has been detected.">
+  <div class="card" id="report-card">
+    <div class="card-header">
+      <h2 class="card-title">CLM Incident Report</h2>
+    </div>
+    <article id="report-content" class="incident-result" style="min-height: 80px;">
+      <p style="color: var(--muted);">Loading report...</p>
+    </article>
+    <div style="margin-top: 16px; text-align: center;">
+      <a href="/" style="color: var(--link);">← Back to home</a>
+    </div>
+  </div>
+</BaseLayout>
+
+<script set:html={reportData} is:inline></script>
+
+<script>
+  function init() {
+    const data = (window as any).__clm_report__;
+    if (!data) {
+      document.getElementById("report-content")!.innerHTML =
+        '<span class="error">No valid report found. Generate one from the home page.</span>';
+      return;
+    }
+
+    const reportContent = document.getElementById("report-content")!;
+    reportContent.innerHTML = "";
+
+    const meta = document.createElement("div");
+    meta.className = "case-meta";
+
+    const id = document.createElement("span");
+    id.textContent = data.id ? `CLM-${data.id}` : "CLM Report";
+
+    const date = document.createElement("span");
+    date.textContent = data.date || (data.timestamp ? new Date(data.timestamp).toLocaleDateString() : "");
+
+    const reason = document.createElement("h3");
+    reason.textContent = data.reason || "Career Limiting Maneuver";
+
+    const report = document.createElement("p");
+    report.textContent = data.report;
+
+    meta.append(id, date);
+    reportContent.append(meta, reason, report);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+</script>

@@ -1,0 +1,78 @@
+---
+---
+
+<div class="card recent-reports-card">
+  <div class="card-header">
+    <h2 class="card-title">Recent CLM Reports</h2>
+  </div>
+  <p style="margin: 0 0 12px; color: var(--muted); font-size: 14px;">Latest career limiting maneuvers from around the office.</p>
+  
+  <div id="recent-reports-list" style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="color: var(--muted; font-size: 13px; text-align: center; padding: 20px;">
+      Loading recent reports...
+    </div>
+  </div>
+</div>
+
+<script>
+  function getLocalReports() {
+    try {
+      return JSON.parse(localStorage.getItem("clm-recent-reports") || "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function renderReports(reports: any[]) {
+    const list = document.getElementById("recent-reports-list")!;
+    list.textContent = "";
+
+    if (reports.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-reports";
+      empty.textContent = "No recent reports yet. Be the first!";
+      list.append(empty);
+      return;
+    }
+
+    for (const report of reports.slice(0, 5)) {
+      const item = document.createElement("article");
+      item.className = "recent-report-item";
+
+      const title = document.createElement("div");
+      title.className = "recent-report-title";
+      title.textContent = report.reason || "Unknown incident";
+
+      const body = document.createElement("div");
+      body.className = "recent-report-body";
+      body.textContent = report.report || "";
+
+      const meta = document.createElement("div");
+      meta.className = "recent-report-meta";
+      meta.textContent = `${report.id ? `CLM-${report.id} · ` : ""}${new Date(report.timestamp || Date.now()).toLocaleDateString()}`;
+
+      item.append(title, body, meta);
+      list.append(item);
+    }
+  }
+
+  async function loadRecentReports() {
+    try {
+      const res = await fetch("/api/reports");
+      if (!res.ok) throw new Error("Failed to load");
+      
+      const remoteReports = await res.json();
+      const localReports = getLocalReports();
+      const reports = [...localReports, ...remoteReports]
+        .filter((report, index, all) => all.findIndex((item) => item.id === report.id) === index)
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      renderReports(reports);
+    } catch {
+      renderReports(getLocalReports());
+    }
+  }
+  
+  loadRecentReports();
+  window.addEventListener("clm:reports-updated", loadRecentReports);
+</script>

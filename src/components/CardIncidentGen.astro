@@ -1,0 +1,185 @@
+---
+const turnstileSiteKey = import.meta.env.TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+const turnstileOptional = import.meta.env.DEV || turnstileSiteKey === "1x00000000000000000000AA";
+---
+
+<div class="card incident-card" id="incident-card">
+  <div class="card-header">
+    <h2 class="card-title">CLM Incident Report Generator</h2>
+  </div>
+  <p style="margin: 0 0 12px; color: var(--muted); font-size: 14px;">Generate your official Career Limiting Maneuver incident report. AI-powered, manager-approved (not really).</p>
+
+  <div class="prompt-area">
+    <div
+      id="turnstile-container"
+      class="turnstile-wrapper"
+      data-sitekey={turnstileSiteKey}
+      data-optional={String(turnstileOptional)}
+    ></div>
+    <button id="generate-btn" class="btn" disabled>
+      <span id="btn-text">Generate Incident Report</span>
+      <span id="btn-spinner" class="spinner" style="display: none;"></span>
+    </button>
+  </div>
+
+  <div id="result-area" style="display: none;">
+    <article class="incident-result">
+      <div class="case-meta">
+        <span id="case-id"></span>
+        <span id="case-date"></span>
+      </div>
+      <h3 id="case-reason"></h3>
+      <p id="result-content"></p>
+    </article>
+  </div>
+</div>
+
+<script>
+  let turnstileReady = false;
+  let turnstileToken = "";
+  let turnstileWidgetId: string | undefined;
+  let turnstileOptional = false;
+
+  function initTurnstile() {
+    if (typeof window === "undefined") return;
+    const container = document.getElementById("turnstile-container");
+    turnstileOptional = container?.dataset.optional === "true";
+
+    if (turnstileOptional) {
+      turnstileReady = true;
+      document.getElementById("generate-btn")?.removeAttribute("disabled");
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (container && (window as any).turnstile) {
+        turnstileWidgetId = (window as any).turnstile.render(container, {
+          sitekey: container.dataset.sitekey,
+          size: "invisible",
+          callback: (token: string) => {
+            turnstileToken = token;
+            generateReport();
+          },
+          "expired-callback": () => {
+            turnstileToken = "";
+          },
+          "error-callback": () => {
+            turnstileToken = "";
+            resetGenerateButton();
+          },
+        });
+        turnstileReady = true;
+        document.getElementById("generate-btn")?.removeAttribute("disabled");
+      }
+    };
+    script.onerror = () => {
+      if (turnstileOptional) {
+        turnstileReady = true;
+        document.getElementById("generate-btn")?.removeAttribute("disabled");
+      }
+    };
+    document.head.appendChild(script);
+  }
+
+  initTurnstile();
+
+  setTimeout(() => {
+    const container = document.getElementById("turnstile-container");
+    if (!turnstileReady && container?.dataset.optional === "true") {
+      turnstileOptional = true;
+      turnstileReady = true;
+      document.getElementById("generate-btn")?.removeAttribute("disabled");
+    }
+  }, 1500);
+
+  function saveLocalReport(report: any) {
+    try {
+      const rawReports = localStorage.getItem("clm-recent-reports");
+      const reports = rawReports ? JSON.parse(rawReports) : [];
+      const nextReports = [report, ...reports.filter((item: any) => item.id !== report.id)].slice(0, 20);
+      localStorage.setItem("clm-recent-reports", JSON.stringify(nextReports));
+      window.dispatchEvent(new CustomEvent("clm:reports-updated"));
+    } catch {}
+  }
+
+  function resetGenerateButton() {
+    const btn = document.getElementById("generate-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    btn?.removeAttribute("disabled");
+    if (btnText) btnText.textContent = "Generate Incident Report";
+    if (btnSpinner) btnSpinner.style.display = "none";
+  }
+
+  function requestReport() {
+    if (!turnstileReady) return;
+
+    const btn = document.getElementById("generate-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    turnstileToken = "";
+    btn?.setAttribute("disabled", "");
+    if (btnText) btnText.textContent = "Verifying...";
+    if (btnSpinner) btnSpinner.style.display = "inline-block";
+
+    if (turnstileOptional) {
+      generateReport();
+      return;
+    }
+
+    if (!turnstileWidgetId || !(window as any).turnstile) {
+      resetGenerateButton();
+      return;
+    }
+
+    (window as any).turnstile.execute(turnstileWidgetId);
+  }
+
+  async function generateReport() {
+    const btn = document.getElementById("generate-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    if (!turnstileToken && !turnstileOptional) return;
+
+    btn?.setAttribute("disabled", "");
+    if (btnText) btnText.textContent = "Generating...";
+    if (btnSpinner) btnSpinner.style.display = "inline-block";
+
+    try {
+      const res = await fetch("/api/generate-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turnstileToken: turnstileToken || null }),
+      });
+
+      if (!res.ok) throw new Error("Generation failed");
+
+      const data = await res.json();
+      saveLocalReport(data);
+
+      document.getElementById("result-area")?.removeAttribute("style");
+      document.getElementById("case-id")!.textContent = `CLM-${data.id}`;
+      document.getElementById("case-date")!.textContent = data.date;
+      document.getElementById("case-reason")!.textContent = data.reason;
+      document.getElementById("result-content")!.textContent = data.report;
+    } catch {
+      document.getElementById("result-area")?.removeAttribute("style");
+      document.getElementById("result-content")!.innerHTML =
+        '<span class="error">Failed to generate report. Try again.</span>';
+    } finally {
+      resetGenerateButton();
+      if ((window as any).turnstile && turnstileWidgetId) {
+        (window as any).turnstile.reset(turnstileWidgetId);
+      }
+    }
+  }
+
+  document.getElementById("generate-btn")?.addEventListener("click", requestReport);
+</script>
