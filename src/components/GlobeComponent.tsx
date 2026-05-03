@@ -11,7 +11,31 @@ function App() {
   const ownId = useRef<string | null>(null);
 
   const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
-  const normalizedHost = (partykitHost ?? "").replace(/^https?:\/\//, "").replace(/^wss?:\/\//, "").replace(/\/$/, "");
+  const normalizeHost = (value?: string) => {
+    if (!value) {
+      return "";
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    try {
+      const withProtocol = /^(wss?|https?):\/\//i.test(trimmed)
+        ? trimmed
+        : `https://${trimmed}`;
+      const parsed = new URL(withProtocol);
+      return parsed.host;
+    } catch {
+      return trimmed
+        .replace(/^(wss?|https?):\/\//i, "")
+        .split("/")[0]
+        .trim();
+    }
+  };
+
+  const normalizedHost = normalizeHost(partykitHost);
   const socketHost = normalizedHost || window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
   const handleSocketConnected = () => setConnected(true);
