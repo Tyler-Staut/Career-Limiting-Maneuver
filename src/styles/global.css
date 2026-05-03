@@ -237,7 +237,7 @@ header.site-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 0;
+  min-height: 420px;
 }
 
 .globe-card--live {
@@ -253,6 +253,7 @@ header.site-header {
 
 .globe-panel {
   height: 100%;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -328,7 +329,7 @@ header.site-header {
 .globe-panel__canvas-wrap {
   width: 100%;
   flex: 1;
-  min-height: 0;
+  min-height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -359,12 +360,17 @@ header.site-header {
 
 @media (max-width: 640px) {
   .globe-card {
-    min-height: 0;
+    min-height: 340px;
   }
 
   .globe-panel {
     justify-content: flex-start;
     padding: 16px;
+    min-height: 340px;
+  }
+
+  .globe-panel__canvas-wrap {
+    min-height: 200px;
   }
 }
 
