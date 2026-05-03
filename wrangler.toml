@@ -14,6 +14,10 @@ enabled = true
 directory = "./dist"
 binding = "ASSETS"
 
+[build]
+command = "npm run build"
+watch_dir = ["src", "public", "astro.config.mjs"]
+
 [ai]
 binding = "AI"
 

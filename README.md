@@ -64,21 +64,16 @@ If this migration/binding is missing or out of sync in an environment, globe pre
 
 ## 🧑‍💻 Local development and expected behavior
 
-Install and run Astro dev:
+Install dependencies, then run the unified worker locally:
 
 ```sh
 pnpm install
 pnpm run dev
 ```
 
-Visit [http://localhost:4321](http://localhost:4321).
+Visit [http://localhost:8787](http://localhost:8787).
 
-For full Worker + websocket/DO behavior locally (recommended when validating globe presence):
-
-```sh
-pnpm run build
-pnpm exec wrangler dev
-```
+`wrangler.toml` now runs `npm run build` before `wrangler dev` and `wrangler deploy`, so the Astro SSR bundle in `dist/_worker.js/index.js` stays in sync with the unified worker entrypoint.
 
 Expected globe behavior:
 - A single open tab should show `1 person limiting their career outlooks.`
@@ -89,8 +84,6 @@ Expected globe behavior:
 ## 🏗️ Build & Deploy
 
 ```sh
-pnpm run build
-pnpm exec wrangler dev ./dist/_worker.js/index.js  # Local Cloudflare Worker preview (SSR-only entry)
 pnpm exec wrangler deploy                           # Deploy to Cloudflare Workers
 ```
 
@@ -99,6 +92,9 @@ pnpm exec wrangler deploy                           # Deploy to Cloudflare Worke
 - **Wrong websocket path / routing bypassed:**
   - Symptom: UI stuck on `Connecting...`
   - Cause: requests are not reaching Party routes (for example, not using the unified `src/worker-entry.ts` path in Worker runtime)
+- **Stale or missing Astro SSR build:**
+  - Symptom: page or globe behavior differs between source files and the deployed/local worker
+  - Cause: `src/worker-entry.ts` imports `dist/_worker.js/index.js`, so `wrangler dev`/`deploy` must rebuild Astro first
 - **Missing Durable Object migration:**
   - Symptom: websocket errors or DO class not found
   - Cause: `[[migrations]]` for `Globe` not applied in target environment

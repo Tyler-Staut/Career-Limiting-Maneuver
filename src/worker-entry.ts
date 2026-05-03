@@ -5,10 +5,7 @@ export { Globe } from "./server/index";
 type MessageListener = (event: { data: unknown }) => void;
 
 const runtimeGlobal = globalThis as typeof globalThis & {
-  MessageChannel?: new () => {
-    port1: unknown;
-    port2: unknown;
-  };
+  MessageChannel?: unknown;
 };
 
 if (typeof runtimeGlobal.MessageChannel === "undefined") {
@@ -70,7 +67,7 @@ if (typeof runtimeGlobal.MessageChannel === "undefined") {
       this.port1.setTarget(this.port2);
       this.port2.setTarget(this.port1);
     }
-  };
+  } as unknown as typeof MessageChannel;
 }
 
 type WorkerModule = {

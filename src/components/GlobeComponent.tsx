@@ -3,25 +3,24 @@ import createGlobe from "cobe";
 import usePartySocket from "partysocket/react";
 import type { GlobeMessage, Location } from "../shared";
 
+type GlobeMarker = {
+  location: Location;
+  size: number;
+};
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "retrying" | "error">("connecting");
   const [counter, setCounter] = useState(0);
   const hasConnected = useRef(false);
-  const positions = useRef<Map<string, Location>>(new Map());
-  const ownId = useRef<string | null>(null);
+  const positions = useRef<Map<string, GlobeMarker>>(new Map());
 
-  const socketHost = window.location.host;
-  const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
   const handleSocketConnected = () => {
     hasConnected.current = true;
     setConnectionState("connected");
   };
 
   usePartySocket({
-    host: socketHost,
-    protocol: socketProtocol,
-    path: "/parties",
     room: "default",
     party: "globe",
     onOpen() {
@@ -56,9 +55,14 @@ function App() {
         return;
       }
 
-      ownId.current = message.id;
       positions.current = new Map(
-        Object.entries(message.globe).map(([id, location]) => [id, location]),
+        Object.entries(message.globe).map(([id, location]) => [
+          id,
+          {
+            location: [location[0], location[1]] as Location,
+            size: id === message.id ? 0.03 : 0.015,
+          },
+        ]),
       );
       setCounter(positions.current.size);
       handleSocketConnected();
@@ -66,44 +70,18 @@ function App() {
   });
 
   useEffect(() => {
-    const wrap = canvasWrapRef.current;
-
-    if (!wrap) {
-      return;
-    }
-
-    const updateGlobeSize = () => {
-      const rect = wrap.getBoundingClientRect();
-      const nextSize = Math.max(0, Math.floor(Math.min(rect.width, rect.height)));
-      setGlobeSize((prevSize) => (prevSize === nextSize ? prevSize : nextSize));
-    };
-
-    updateGlobeSize();
-
-    const resizeObserver = new ResizeObserver(updateGlobeSize);
-    resizeObserver.observe(wrap);
-    window.addEventListener("resize", updateGlobeSize);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateGlobeSize);
-    };
-  }, []);
-
-  useEffect(() => {
     let phi = 0;
+    let animationFrame = 0;
     const canvas = canvasRef.current;
-    const dpr = window.devicePixelRatio || 1;
-    const size = globeSize;
 
-    if (!canvas || size <= 0) {
+    if (!canvas) {
       return;
     }
 
     const globe = createGlobe(canvas, {
-      devicePixelRatio: dpr,
-      width: size * dpr,
-      height: size * dpr,
+      devicePixelRatio: 2,
+      width: 400 * 2,
+      height: 400 * 2,
       phi: 0,
       theta: 0,
       dark: 1,
@@ -111,25 +89,29 @@ function App() {
       mapSamples: 16000,
       mapBrightness: 6,
       baseColor: [0.3, 0.3, 0.3],
-      markerColor: [0.1, 0.8, 0.1],
+      markerColor: [0.8, 0.1, 0.1],
       glowColor: [0.2, 0.2, 0.2],
-      scale: 1,
-      markers: [],
+      markerElevation: 0,
+      markers: [] as GlobeMarker[],
       opacity: 0.7,
-      onRender: (state) => {
-        state.markers = Array.from(positions.current, ([id, location]) => ({
-          location: [location[0], location[1]] as Location,
-          size: id === ownId.current ? 0.14 : 0.08,
-        }));
-        state.phi = phi;
-        phi += 0.01;
-      },
     });
 
+    const render = () => {
+      globe.update({
+        markers: [...positions.current.values()],
+        phi,
+      });
+      phi += 0.009;
+      animationFrame = window.requestAnimationFrame(render);
+    };
+
+    render();
+
     return () => {
+      window.cancelAnimationFrame(animationFrame);
       globe.destroy();
     };
-  }, [globeSize]);
+  }, []);
 
   const [clmTriggered, setClmTriggered] = useState(false);
   useEffect(() => {
@@ -180,7 +162,7 @@ function App() {
               <span className="globe-panel__counter" role="status" aria-live="polite">
                 {counter} {counter === 1 ? "person" : "people"} live
               </span>{" "}
-              currently running career-limiting maneuvers.
+              limiting their career outlooks.
             </>
           ) : connectionState === "error" ? (
             "Connection hiccup. Retrying before this becomes an official incident report."
@@ -192,11 +174,11 @@ function App() {
         </p>
       </div>
 
-      <div ref={canvasWrapRef} className="globe-panel__canvas-wrap">
+      <div className="globe-panel__canvas-wrap">
         <canvas
           ref={canvasRef}
           className="globe-panel__canvas"
-          style={{ width: globeSize, height: globeSize }}
+          style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
         />
       </div>
     </div>
