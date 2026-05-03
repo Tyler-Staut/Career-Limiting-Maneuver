@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import createGlobe from "cobe";
-import usePartySocket from "partysocket/react";
 import type { GlobeMessage, Location } from "../shared";
 
 function App() {
@@ -9,59 +8,36 @@ function App() {
   const [counter, setCounter] = useState(0);
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
-  const normalizeHost = (value?: string) => {
-    if (!value) {
-      return "";
-    }
+  // Use standard WebSocket instead of partysocket for testing
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://${window.location.host}/parties/globe/default`;
+    
+    console.log("[WebSocket] Connecting to", wsUrl);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return "";
-    }
+    ws.onopen = () => {
+      console.log("[WebSocket] Connected to globe/default");
+      setConnected(true);
+    };
 
-    try {
-      const withProtocol = /^(wss?|https?):\/\//i.test(trimmed)
-        ? trimmed
-        : `https://${trimmed}`;
-      const parsed = new URL(withProtocol);
-      return parsed.host;
-    } catch {
-      return trimmed
-        .replace(/^(wss?|https?):\/\//i, "")
-        .split("/")[0]
-        .trim();
-    }
-  };
-
-  const normalizedHost = normalizeHost(partykitHost);
-  const socketHost = normalizedHost || window.location.host;
-  const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const handleSocketConnected = () => setConnected(true);
-
-  usePartySocket({
-    host: socketHost,
-    protocol: socketProtocol,
-    path: "/parties",
-    room: "default",
-    party: "globe",
-    onOpen() {
-      console.info("[PartySocket] Connected to globe/default");
-      handleSocketConnected();
-    },
-    onClose(event) {
-      console.warn("[PartySocket] Disconnected from globe/default", {
+    ws.onclose = (event) => {
+      console.warn("[WebSocket] Disconnected from globe/default", {
         code: event.code,
         reason: event.reason,
         wasClean: event.wasClean,
       });
       setConnected(false);
-    },
-    onError(event) {
-      console.error("[PartySocket] Connection error for globe/default", event);
-    },
-    onMessage(evt) {
+    };
+
+    ws.onerror = (event) => {
+      console.error("[WebSocket] Connection error for globe/default", event);
+    };
+
+    ws.onmessage = (evt) => {
       if (typeof evt.data !== "string") {
         return;
       }
@@ -70,7 +46,7 @@ function App() {
       try {
         message = JSON.parse(evt.data) as GlobeMessage;
       } catch (error) {
-        console.error("[PartySocket] Failed to parse globe message", error);
+        console.error("[WebSocket] Failed to parse globe message", error);
         return;
       }
 
@@ -79,9 +55,13 @@ function App() {
         Object.entries(message.globe).map(([id, location]) => [id, location]),
       );
       setCounter(positions.current.size);
-      handleSocketConnected();
-    },
-  });
+      setConnected(true);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   useEffect(() => {
     let phi = 0;
@@ -91,6 +71,8 @@ function App() {
       return;
     }
 
+    console.log("[Globe] Initializing globe with canvas", canvas);
+    
     const globe = createGlobe(canvas, {
       devicePixelRatio: 2,
       width: 400 * 2,
@@ -104,19 +86,25 @@ function App() {
       baseColor: [0.3, 0.3, 0.3],
       markerColor: [0.1, 0.8, 0.1],
       glowColor: [0.2, 0.2, 0.2],
-      markers: [],
+      markers: [] as any,
       opacity: 0.7,
+      scale: 1,
       onRender: (state) => {
-        state.markers = [...positions.current].map(([id, location]) => ({
-          location,
-          size: id === ownId.current ? 0.1 : 0.05,
-        }));
+        const markers = [];
+        for (const [id, location] of positions.current) {
+          markers.push({
+            location,
+            size: id === ownId.current ? 0.1 : 0.05,
+          });
+        }
+        state.markers = markers;
         state.phi = phi;
         phi += 0.01;
       },
     });
 
     return () => {
+      console.log("[Globe] Destroying globe");
       globe.destroy();
     };
   }, []);

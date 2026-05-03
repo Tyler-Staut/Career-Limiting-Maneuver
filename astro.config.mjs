@@ -6,7 +6,17 @@ export default defineConfig({
   output: 'server',
   adapter: cloudflare({
     runtime: 'advanced',
-    entrypoint: './src/worker-entry.ts',
+    workerEntryPoint: {
+      path: './src/worker-entry.ts',
+      namedExports: ['Globe'],
+    },
   }),
   integrations: [react()],
+  vite: {
+    resolve: {
+      alias: import.meta.env.PROD ? {
+        'react-dom/server': 'react-dom/server.edge',
+      } : undefined,
+    },
+  },
 });

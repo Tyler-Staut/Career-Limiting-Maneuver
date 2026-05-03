@@ -1,21 +1,9 @@
-import { routePartykitRequest } from "partyserver";
-
-export { Globe } from "./server/index";
-
-type MessageListener = (event: { data: unknown }) => void;
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  MessageChannel?: new () => {
-    port1: unknown;
-    port2: unknown;
-  };
-};
-
-if (typeof runtimeGlobal.MessageChannel === "undefined") {
+// Polyfill MessageChannel for Cloudflare Workers (React needs it)
+if (typeof MessageChannel === 'undefined') {
   class PolyfillMessagePort {
-    onmessage: MessageListener | null = null;
+    onmessage: ((event: { data: unknown }) => void) | null = null;
     #closed = false;
-    #listeners = new Set<MessageListener>();
+    #listeners = new Set<(event: { data: unknown }) => void>();
     #target: PolyfillMessagePort | null = null;
 
     setTarget(target: PolyfillMessagePort) {
@@ -41,14 +29,14 @@ if (typeof runtimeGlobal.MessageChannel === "undefined") {
       });
     }
 
-    addEventListener(type: string, listener: MessageListener) {
-      if (type === "message") {
+    addEventListener(type: string, listener: (event: { data: unknown }) => void) {
+      if (type === 'message') {
         this.#listeners.add(listener);
       }
     }
 
-    removeEventListener(type: string, listener: MessageListener) {
-      if (type === "message") {
+    removeEventListener(type: string, listener: (event: { data: unknown }) => void) {
+      if (type === 'message') {
         this.#listeners.delete(listener);
       }
     }
@@ -62,7 +50,7 @@ if (typeof runtimeGlobal.MessageChannel === "undefined") {
     }
   }
 
-  runtimeGlobal.MessageChannel = class PolyfillMessageChannel {
+  class PolyfillMessageChannel {
     port1 = new PolyfillMessagePort();
     port2 = new PolyfillMessagePort();
 
@@ -70,39 +58,30 @@ if (typeof runtimeGlobal.MessageChannel === "undefined") {
       this.port1.setTarget(this.port2);
       this.port2.setTarget(this.port1);
     }
+  }
+
+  (globalThis as unknown as Record<string, unknown>).MessageChannel = PolyfillMessageChannel;
+}
+
+import type { SSRManifest } from 'astro';
+import { App } from 'astro/app';
+import { handle } from '@astrojs/cloudflare/handler';
+import { routePartykitRequest } from 'partyserver';
+
+import { Globe } from "./server/index";
+
+export function createExports(manifest: SSRManifest) {
+  const app = new App(manifest);
+  return {
+    default: {
+      async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
+        const partyResponse = await routePartykitRequest(request, env as Record<string, unknown>);
+        if (partyResponse) {
+          return partyResponse;
+        }
+        return handle(manifest, app, request, env, ctx);
+      },
+    },
+    Globe,
   };
 }
-
-type WorkerModule = {
-  default?: { fetch: (request: Request, env: unknown, ctx: ExecutionContext) => Response | Promise<Response> };
-  fetch?: (request: Request, env: unknown, ctx: ExecutionContext) => Response | Promise<Response>;
-};
-
-type PartyServerEnv = Parameters<typeof routePartykitRequest>[1];
-
-let astroWorkerModulePromise: Promise<WorkerModule> | undefined;
-
-function getAstroWorkerModule() {
-  if (!astroWorkerModulePromise) {
-    astroWorkerModulePromise = import("../dist/_worker.js/index.js");
-  }
-  return astroWorkerModulePromise;
-}
-
-export default {
-  async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
-    const partyResponse = await routePartykitRequest(request, env as PartyServerEnv);
-    if (partyResponse) {
-      return partyResponse;
-    }
-
-    const astroWorkerModule = await getAstroWorkerModule();
-    const handler = astroWorkerModule.default?.fetch ?? astroWorkerModule.fetch;
-
-    if (!handler) {
-      throw new Error("Astro worker fetch handler not found in dist/_worker.js/index.js");
-    }
-
-    return handler(request, env, ctx);
-  },
-};

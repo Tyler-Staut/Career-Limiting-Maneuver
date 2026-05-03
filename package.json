@@ -3,13 +3,13 @@
   "type": "module",
   "version": "0.0.2",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "wrangler dev --local",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.6.0",
+    "@astrojs/cloudflare": "^12.6.13",
     "@astrojs/react": "^5.0.4",
     "astro": "^5.12.6",
     "cobe": "^2.0.1",
