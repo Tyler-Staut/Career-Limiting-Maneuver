@@ -18,10 +18,10 @@ export class Globe extends Server {
       return Number.isFinite(parsed) ? parsed : fallback;
     };
 
-    const randomLatitude = Math.random() * 180 - 90;
-    const randomLongitude = Math.random() * 360 - 180;
-    const latitude = parseCoordinate(ctx.request.cf?.latitude, randomLatitude);
-    const longitude = parseCoordinate(ctx.request.cf?.longitude, randomLongitude);
+    const fallbackLatitude = 20;
+    const fallbackLongitude = 0;
+    const latitude = parseCoordinate(ctx.request.cf?.latitude, fallbackLatitude);
+    const longitude = parseCoordinate(ctx.request.cf?.longitude, fallbackLongitude);
     const location: Location = [
       Math.max(-90, Math.min(90, latitude)),
       Math.max(-180, Math.min(180, longitude)),

@@ -4,6 +4,7 @@ import type { GlobeMessage, Location } from "../shared";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasSize, setCanvasSize] = useState(800);
   const [connected, setConnected] = useState(false);
   const [counter, setCounter] = useState(0);
   const positions = useRef<Map<string, Location>>(new Map());
@@ -64,6 +65,26 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const measure = () => {
+      const nextSize = Math.max(2, Math.round((canvas.offsetWidth || 400) * 2));
+      setCanvasSize((current) => (current === nextSize ? current : nextSize));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     let phi = 0;
     const canvas = canvasRef.current;
 
@@ -75,8 +96,8 @@ function App() {
     
     const globe = createGlobe(canvas, {
       devicePixelRatio: 2,
-      width: 400 * 2,
-      height: 400 * 2,
+      width: canvasSize,
+      height: canvasSize,
       phi: 0,
       theta: 0,
       dark: 1,
@@ -107,7 +128,7 @@ function App() {
       console.log("[Globe] Destroying globe");
       globe.destroy();
     };
-  }, []);
+  }, [canvasSize]);
 
   const [clmTriggered, setClmTriggered] = useState(false);
   useEffect(() => {
