@@ -278,6 +278,12 @@ header.site-header {
   transform: translateY(1px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .globe-panel__copy {
+    transition: none;
+  }
+}
+
 .globe-panel__title {
   color: inherit;
   margin: 0;
@@ -308,6 +314,11 @@ header.site-header {
   color: #071018;
   background: color-mix(in oklab, var(--accent) 75%, #fff);
   vertical-align: baseline;
+}
+
+.globe-panel__copy[data-state="retrying"] .globe-panel__counter,
+.globe-panel__copy[data-state="error"] .globe-panel__counter {
+  background: color-mix(in oklab, #f6d365 70%, #fff);
 }
 
 [data-theme="light"] .globe-panel__counter {

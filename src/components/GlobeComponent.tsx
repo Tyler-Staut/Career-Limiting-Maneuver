@@ -7,6 +7,7 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "retrying" | "error">("connecting");
   const [counter, setCounter] = useState(0);
+  const hasConnected = useRef(false);
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
@@ -38,7 +39,10 @@ function App() {
   const normalizedHost = normalizeHost(partykitHost);
   const socketHost = normalizedHost || window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const handleSocketConnected = () => setConnectionState("connected");
+  const handleSocketConnected = () => {
+    hasConnected.current = true;
+    setConnectionState("connected");
+  };
 
   usePartySocket({
     host: socketHost,
@@ -56,11 +60,14 @@ function App() {
         reason: event.reason,
         wasClean: event.wasClean,
       });
-      setConnectionState("retrying");
+      setConnectionState(hasConnected.current ? "retrying" : "connecting");
     },
     onError(event) {
       console.error("[PartySocket] Connection error for globe/default", event);
       setConnectionState("error");
+      window.setTimeout(() => {
+        setConnectionState((current) => (current === "error" ? "retrying" : current));
+      }, 1200);
     },
     onMessage(evt) {
       if (typeof evt.data !== "string") {
@@ -169,16 +176,16 @@ function App() {
           {connectionState === "connected" ? (
             <>
               <span className="globe-panel__counter" role="status" aria-live="polite">
-                {counter} {counter === 1 ? "operator" : "operators"} online
+                {counter} {counter === 1 ? "person" : "people"} live
               </span>{" "}
-              currently limiting their career outlook.
+              currently running career-limiting maneuvers.
             </>
           ) : connectionState === "error" ? (
-            "Connection failed. Retrying before this maneuver goes on your permanent record."
+            "Connection hiccup. Retrying before this becomes an official incident report."
           ) : connectionState === "retrying" ? (
-            "Signal dropped. Reconnecting to the career-limiting command center..."
+            "Signal dropped. Reconnecting to the career-limiting command center."
           ) : (
-            "Connecting to the career-limiting command center..."
+            "Connecting to the career-limiting command center."
           )}
         </p>
       </div>
