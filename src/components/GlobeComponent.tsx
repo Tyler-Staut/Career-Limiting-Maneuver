@@ -10,34 +10,10 @@ function App() {
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
-  const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
-  const normalizeHost = (value?: string) => {
-    if (!value) {
-      return "";
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return "";
-    }
-
-    try {
-      const withProtocol = /^(wss?|https?):\/\//i.test(trimmed)
-        ? trimmed
-        : `https://${trimmed}`;
-      const parsed = new URL(withProtocol);
-      return parsed.host;
-    } catch {
-      return trimmed
-        .replace(/^(wss?|https?):\/\//i, "")
-        .split("/")[0]
-        .trim();
-    }
-  };
-
-  const normalizedHost = normalizeHost(partykitHost);
-  const socketHost = normalizedHost || window.location.host;
+  const socketHost = window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const socketTarget = `${socketProtocol}://${socketHost}/parties/globe/default`;
+  console.debug("[PartySocket] Using same-origin socket target", socketTarget);
   const handleSocketConnected = () => setConnected(true);
 
   usePartySocket({
@@ -60,6 +36,7 @@ function App() {
     },
     onError(event) {
       console.error("[PartySocket] Connection error for globe/default", event);
+      setConnected(false);
     },
     onMessage(evt) {
       if (typeof evt.data !== "string") {
