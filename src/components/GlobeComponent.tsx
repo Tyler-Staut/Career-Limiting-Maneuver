@@ -110,12 +110,13 @@ function App() {
       baseColor: [0.3, 0.3, 0.3],
       markerColor: [0.1, 0.8, 0.1],
       glowColor: [0.2, 0.2, 0.2],
+      scale: 1,
       markers: [],
       opacity: 0.7,
       onRender: (state) => {
-        state.markers = [...positions.current].map(([id, location]) => ({
-          location,
-          size: id === ownId.current ? 0.1 : 0.05,
+        state.markers = Array.from(positions.current, ([id, location]) => ({
+          location: [location[0], location[1]] as Location,
+          size: id === ownId.current ? 0.14 : 0.08,
         }));
         state.phi = phi;
         phi += 0.01;
