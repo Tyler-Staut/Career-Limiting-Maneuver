@@ -11,10 +11,10 @@ function App() {
   const ownId = useRef<string | null>(null);
 
   const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
-  const socketHost =
-    typeof window === "undefined" ? (partykitHost ?? "localhost") : (partykitHost ?? window.location.host);
-  const socketProtocol =
-    typeof window === "undefined" ? "wss" : (window.location.protocol === "https:" ? "wss" : "ws");
+  const normalizedHost = (partykitHost ?? "").replace(/^https?:\/\//, "").replace(/^wss?:\/\//, "").replace(/\/$/, "");
+  const socketHost = normalizedHost || window.location.host;
+  const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const handleSocketConnected = () => setConnected(true);
 
   usePartySocket({
     host: socketHost,
@@ -24,6 +24,7 @@ function App() {
     party: "globe",
     onOpen() {
       console.info("[PartySocket] Connected to globe/default");
+      handleSocketConnected();
     },
     onClose(event) {
       console.warn("[PartySocket] Disconnected from globe/default", {
@@ -31,6 +32,7 @@ function App() {
         reason: event.reason,
         wasClean: event.wasClean,
       });
+      setConnected(false);
     },
     onError(event) {
       console.error("[PartySocket] Connection error for globe/default", event);
@@ -40,14 +42,20 @@ function App() {
         return;
       }
 
-      const message = JSON.parse(evt.data) as GlobeMessage;
+      let message: GlobeMessage;
+      try {
+        message = JSON.parse(evt.data) as GlobeMessage;
+      } catch (error) {
+        console.error("[PartySocket] Failed to parse globe message", error);
+        return;
+      }
 
       ownId.current = message.id;
       positions.current = new Map(
         Object.entries(message.globe).map(([id, location]) => [id, location]),
       );
       setCounter(positions.current.size);
-      setConnected(true);
+      handleSocketConnected();
     },
   });
 
@@ -120,47 +128,29 @@ function App() {
   }, []);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="globe-panel">
       {clmTriggered && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.8)",
-            color: "#fff",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 32,
-            flexDirection: "column",
-            textAlign: "center",
-          }}
-          onClick={() => setClmTriggered(false)}
-        >
+        <div className="globe-easter-egg" onClick={() => setClmTriggered(false)}>
           <div>You've just triggered a Career Limiting Maneuver™!</div>
           <div>Your actions have been logged and reported.</div>
         </div>
       )}
 
-      <h1 style={{ color: "inherit", margin: "0 0 8px 0", fontSize: "1.2rem" }}>
+      <h1 className="globe-panel__title">
         Who Else is Pulling a Career Limiting Maneuver?
       </h1>
       {connected ? (
-        <p style={{ color: "#999", margin: "0 0 12px 0" }}>
-          <b style={{ color: "inherit" }}>{counter}</b> {counter === 1 ? "person" : "people"} limiting their career outlooks.
+        <p className="globe-panel__subtitle">
+          <b className="globe-panel__counter">{counter}</b> {counter === 1 ? "person" : "people"} limiting their career outlooks.
         </p>
       ) : (
-        <p style={{ color: "#999", margin: "0 0 12px 0" }}>Connecting...</p>
+        <p className="globe-panel__subtitle">Connecting...</p>
       )}
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="globe-panel__canvas-wrap">
         <canvas
           ref={canvasRef}
-          style={{ display: "block", width: "100%", maxWidth: 400, aspectRatio: 1 }}
+          className="globe-panel__canvas"
         />
       </div>
     </div>
