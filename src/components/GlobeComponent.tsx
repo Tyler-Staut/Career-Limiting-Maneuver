@@ -5,8 +5,10 @@ import type { GlobeMessage, Location } from "../shared";
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [connected, setConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "retrying" | "error">("connecting");
   const [counter, setCounter] = useState(0);
+  const hasConnected = useRef(false);
+  const retryTimeoutRef = useRef<number | null>(null);
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
@@ -38,7 +40,14 @@ function App() {
   const normalizedHost = normalizeHost(partykitHost);
   const socketHost = normalizedHost || window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const handleSocketConnected = () => setConnected(true);
+  const handleSocketConnected = () => {
+    if (retryTimeoutRef.current !== null) {
+      window.clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    hasConnected.current = true;
+    setConnectionState("connected");
+  };
 
   usePartySocket({
     host: socketHost,
@@ -56,10 +65,18 @@ function App() {
         reason: event.reason,
         wasClean: event.wasClean,
       });
-      setConnected(false);
+      setConnectionState(hasConnected.current ? "retrying" : "connecting");
     },
     onError(event) {
       console.error("[PartySocket] Connection error for globe/default", event);
+      setConnectionState("error");
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+      retryTimeoutRef.current = window.setTimeout(() => {
+        setConnectionState((current) => (current === "error" ? "retrying" : current));
+        retryTimeoutRef.current = null;
+      }, 1200);
     },
     onMessage(evt) {
       if (typeof evt.data !== "string") {
@@ -82,6 +99,14 @@ function App() {
       handleSocketConnected();
     },
   });
+
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let phi = 0;
@@ -160,16 +185,27 @@ function App() {
         </div>
       )}
 
-      <h1 className="globe-panel__title">
-        Who Else is Pulling a Career Limiting Maneuver?
-      </h1>
-      {connected ? (
+      <div className="globe-panel__copy" data-state={connectionState}>
+        <h1 className="globe-panel__title">
+          Who Else Is Pulling a Career-Limiting Maneuver?
+        </h1>
         <p className="globe-panel__subtitle">
-          <b className="globe-panel__counter">{counter}</b> {counter === 1 ? "person" : "people"} limiting their career outlooks.
+          {connectionState === "connected" ? (
+            <>
+              <span className="globe-panel__counter" role="status" aria-live="polite">
+                {counter} {counter === 1 ? "person" : "people"} live
+              </span>{" "}
+              currently running career-limiting maneuvers.
+            </>
+          ) : connectionState === "error" ? (
+            "Connection hiccup. Retrying before this becomes an official incident report."
+          ) : connectionState === "retrying" ? (
+            "Signal dropped. Reconnecting to the career-limiting command center."
+          ) : (
+            "Connecting to the career-limiting command center."
+          )}
         </p>
-      ) : (
-        <p className="globe-panel__subtitle">Connecting...</p>
-      )}
+      </div>
 
       <div className="globe-panel__canvas-wrap">
         <canvas
