@@ -43,7 +43,10 @@ export class Globe extends Server {
       }
 
       if (connection.state?.location) {
-        globe[connection.id] = connection.state.location;
+        globe[connection.id] = [
+          connection.state.location[0],
+          connection.state.location[1],
+        ];
       }
     }
 
