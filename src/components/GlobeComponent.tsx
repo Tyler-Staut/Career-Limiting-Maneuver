@@ -11,33 +11,7 @@ function App() {
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
-  const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
-  const normalizeHost = (value?: string) => {
-    if (!value) {
-      return "";
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return "";
-    }
-
-    try {
-      const withProtocol = /^(wss?|https?):\/\//i.test(trimmed)
-        ? trimmed
-        : `https://${trimmed}`;
-      const parsed = new URL(withProtocol);
-      return parsed.host;
-    } catch {
-      return trimmed
-        .replace(/^(wss?|https?):\/\//i, "")
-        .split("/")[0]
-        .trim();
-    }
-  };
-
-  const normalizedHost = normalizeHost(partykitHost);
-  const socketHost = normalizedHost || window.location.host;
+  const socketHost = window.location.host;
   const socketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
   const handleSocketConnected = () => {
     hasConnected.current = true;
@@ -92,17 +66,44 @@ function App() {
   });
 
   useEffect(() => {
+    const wrap = canvasWrapRef.current;
+
+    if (!wrap) {
+      return;
+    }
+
+    const updateGlobeSize = () => {
+      const rect = wrap.getBoundingClientRect();
+      const nextSize = Math.max(0, Math.floor(Math.min(rect.width, rect.height)));
+      setGlobeSize((prevSize) => (prevSize === nextSize ? prevSize : nextSize));
+    };
+
+    updateGlobeSize();
+
+    const resizeObserver = new ResizeObserver(updateGlobeSize);
+    resizeObserver.observe(wrap);
+    window.addEventListener("resize", updateGlobeSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateGlobeSize);
+    };
+  }, []);
+
+  useEffect(() => {
     let phi = 0;
     const canvas = canvasRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const size = globeSize;
 
-    if (!canvas) {
+    if (!canvas || size <= 0) {
       return;
     }
 
     const globe = createGlobe(canvas, {
-      devicePixelRatio: 2,
-      width: 400 * 2,
-      height: 400 * 2,
+      devicePixelRatio: dpr,
+      width: size * dpr,
+      height: size * dpr,
       phi: 0,
       theta: 0,
       dark: 1,
@@ -112,12 +113,13 @@ function App() {
       baseColor: [0.3, 0.3, 0.3],
       markerColor: [0.1, 0.8, 0.1],
       glowColor: [0.2, 0.2, 0.2],
+      scale: 1,
       markers: [],
       opacity: 0.7,
       onRender: (state) => {
-        state.markers = [...positions.current].map(([id, location]) => ({
-          location,
-          size: id === ownId.current ? 0.1 : 0.05,
+        state.markers = Array.from(positions.current, ([id, location]) => ({
+          location: [location[0], location[1]] as Location,
+          size: id === ownId.current ? 0.14 : 0.08,
         }));
         state.phi = phi;
         phi += 0.01;
@@ -127,7 +129,7 @@ function App() {
     return () => {
       globe.destroy();
     };
-  }, []);
+  }, [globeSize]);
 
   const [clmTriggered, setClmTriggered] = useState(false);
   useEffect(() => {
@@ -190,10 +192,11 @@ function App() {
         </p>
       </div>
 
-      <div className="globe-panel__canvas-wrap">
+      <div ref={canvasWrapRef} className="globe-panel__canvas-wrap">
         <canvas
           ref={canvasRef}
           className="globe-panel__canvas"
+          style={{ width: globeSize, height: globeSize }}
         />
       </div>
     </div>

@@ -1,7 +1,7 @@
 name = "career-limiting-maneuver"
 main = "src/worker-entry.ts"
 compatibility_date = "2025-07-30"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "enable_ctx_exports"]
 upload_source_maps = true
 routes = [
   { pattern = "careerlimitingmaneuver.com", zone_name = "careerlimitingmaneuver.com", custom_domain = true }
