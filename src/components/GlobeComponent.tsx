@@ -10,9 +10,31 @@ function App() {
   const positions = useRef<Map<string, Location>>(new Map());
   const ownId = useRef<string | null>(null);
 
+  const partykitHost = import.meta.env.PUBLIC_PARTYKIT_HOST;
+  const socketHost =
+    typeof window === "undefined" ? (partykitHost ?? "localhost") : (partykitHost ?? window.location.host);
+  const socketProtocol =
+    typeof window === "undefined" ? "wss" : (window.location.protocol === "https:" ? "wss" : "ws");
+
   usePartySocket({
+    host: socketHost,
+    protocol: socketProtocol,
+    path: "/parties",
     room: "default",
     party: "globe",
+    onOpen() {
+      console.info("[PartySocket] Connected to globe/default");
+    },
+    onClose(event) {
+      console.warn("[PartySocket] Disconnected from globe/default", {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
+    },
+    onError(event) {
+      console.error("[PartySocket] Connection error for globe/default", event);
+    },
     onMessage(evt) {
       if (typeof evt.data !== "string") {
         return;
